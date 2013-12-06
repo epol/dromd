@@ -24,8 +24,6 @@ type b_exp =
 	| Band of b_exp * b_exp
 ;;
 
-type 
-
 type stm =
 	| Sassign of vname * a_exp
 	| Sskip
