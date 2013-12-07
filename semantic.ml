@@ -136,45 +136,30 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 						sto(n)
 			)
 		)
-	|	Scall ( f , a) ->
-		let Func ( s1, v , envf ) = sto (env f ) in
-			let ( env1 , sto1 )=
-				( (
-					fun (v1:vname) ->
-						if v1=v then
-							to_int (sto(-1))
-						else
-							envf(v1)
-					), (
-					fun ( n:loc) ->
-						if n = to_int (sto(-1)) then
-							a_sem a env sto
-						else if n = -1 then 
-								Int (to_int (sto(-1)) +1)
-							else
-								sto(n)
-						)
-					) in
-					let (env2, sto2) = sem s1 env1 sto1 in
-						(env , sto2)
-		
-  | Slet (v,a) ->
-	  (
-			(fun (v1:vname) ->
-				if v1 = v then
-					to_int (sto(-1))
-				else
-					env(v1)
-			),
-			(fun (n:loc) ->
-				if n = to_int (sto(-1)) then
-					a_sem a env sto
-				else if n = -1 then
-					Int (to_int (sto(-1)) + 1)
-				else
-					sto (n)
-	  	)
-	  )
-        
-	| _ -> raise (Failure "Semantic not implemented yet")
+	|	Scall ( f , a) -> 
+		(
+			match sto (env f) with
+				| Func ( s1, v , envf ) ->
+					let ( env1 , sto1 )=
+						( (
+							fun (v1:vname) ->
+								if v1=v then
+									to_int (sto(-1))
+								else
+									envf(v1)
+							), (
+							fun ( n:loc) ->
+								if n = to_int (sto(-1)) then
+									a_sem a env sto
+								else if n = -1 then 
+										Int (to_int (sto(-1)) +1)
+									else
+										sto(n)
+								)
+							) in
+							let (env2, sto2) = sem s1 env1 sto1 in
+								(env , sto2)
+				| _ -> raise (Failure "Call to an invalid function")
+		)
+(*	| _ -> raise (Failure "Semantic not implemented yet")   *)
 ;;
