@@ -35,6 +35,20 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
     | Pointer p -> sto ( p )
     | _ -> raise (Failure "Not a pointer")
     )
+	| AvarArray (arrayName , indexExp) -> 
+		(
+			match a_sem indexExp env sto with
+				|	Int index ->
+					( match sto ((env arrayName )-1)  with
+							|	Int arrayLength ->
+								if index < arrayLength then
+									sto (env arrayName + index)
+								else 
+									raise (Failure "Segmentation Fault!")
+							| _ -> raise (Failure "Is that an array?")
+					)
+				|	_ -> raise (Failure "Invalid array index expression")
+		)
 	| _ -> raise (Failure "Invalid a-exp")
 ;;
 
@@ -161,5 +175,41 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 								(env , sto2)
 				| _ -> raise (Failure "Call to an invalid function")
 		)
+	|	SletArray ( arrayName , arrayLengthExp , arrayInitialValueExp ) ->
+		match ( a_sem arrayLengthExp env sto , a_sem arrayInitialValueExp env sto ) with 
+			|	(Int arrayLength , Int arrayInitialValue ) ->
+				(fun (v:vname) ->
+					if v = arrayName then 
+						(to_int (sto(-1))) + 1
+					else 
+						env (v)
+				),
+				(fun (n:loc) ->
+					if n=to_int(sto(-1)) then Int arrayLength
+					else if n>to_int(sto(-1)) && n <= to_int(sto(-1)) +arrayLength then Int arrayInitialValue
+					else if n = -1 then Int (to_int (sto (-1)) + 1 + arrayLength)
+					else sto(n)
+				)
+			| _ -> raise (Failure "Invalid array initialization") 
+			
+			
 (*	| _ -> raise (Failure "Semantic not implemented yet")   *)
 ;;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

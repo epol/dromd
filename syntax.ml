@@ -14,6 +14,7 @@ type a_exp =
 	| Aproj1 of a_exp
 	| Aproj2 of a_exp
   | Apnt2val of vname
+  |	AvarArray of vname * a_exp
 ;;
 
 type b_exp =
@@ -37,4 +38,5 @@ type stm =
 	| Sblock of stm
 	| Scall of vname * a_exp
 	| Sprint of a_exp
+	|	SletArray of vname * a_exp * a_exp
 ;;
