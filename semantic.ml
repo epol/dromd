@@ -30,7 +30,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Aproj2 Acouple (a1, a2) -> a_sem a2 env sto
     | Apnt2val v -> match sto (env v) with
         | Pointer p -> sto ( p )
-        | _ -> raise (failure "Not a pointer")
+        | _ -> raise (Failure "Not a pointer")
 	| _ -> raise (Failure "Invalid a-exp")
 ;;
 
