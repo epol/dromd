@@ -3,8 +3,9 @@
 #use "syntax.ml"
 
 type loc = int;; (* indirizzi di memoria *)
+type environment = vname -> loc;;
 
-type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result;;
+type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result | Func of stm * vname * environment ;;
 
 let to_int (r:result) = match r with
 	| Int i -> i
@@ -15,7 +16,7 @@ let to_bool (r:result) = match r with
   | Bool b -> b
   | _ -> raise (Failure "Wrong data type in conversion")
 
-type environment = vname -> loc;;
+
 type storage = loc -> result;;
 
 let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
@@ -61,6 +62,8 @@ let rec print_result r = match r with
 		Printf.printf "%b" b
 	| Pointer p ->
 		Printf.printf "%d" p
+	|	Func (s , v, e) ->
+		Printf.printf "This is a function\n"
 ;;
 
 let rec sem (s:stm) (env:environment) (sto:storage) = match s with
@@ -113,5 +116,65 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 			print_result a_value;
 			Printf.printf "\n";
 			(env, sto)
+	| Sblock s1 ->
+		let (env1,sto1) = sem s1 env sto in
+			(env,sto1)
+	| Sfun (f , p , s1) ->
+		(
+			(fun (v1:vname) ->
+				if v1 =f then 
+					to_int (sto(-1))
+				else
+					env(v1)
+			),
+			(fun (n:loc) ->
+				if n = to_int(sto(-1)) then 
+					Func ( s1 , p, env)
+				else if n = -1 then
+					Int (to_int( sto(-1)) +1 )
+					else
+						sto(n)
+			)
+		)
+	|	Scall ( f , a) ->
+		let Func ( s1, v , envf ) = sto (env f ) in
+			let ( env1 , sto1 )=
+				( (
+					fun (v1:vname) ->
+						if v1=v then
+							to_int (sto(-1))
+						else
+							envf(v1)
+					), (
+					fun ( n:loc) ->
+						if n = to_int (sto(-1)) then
+							a_sem a env sto
+						else if n = -1 then 
+								Int (to_int (sto(-1)) +1)
+							else
+								sto(n)
+						)
+					) in
+					let (env2, sto2) = sem s1 env1 sto1 in
+						(env , sto2)
+		
+  | Slet (v,a) ->
+	  (
+			(fun (v1:vname) ->
+				if v1 = v then
+					to_int (sto(-1))
+				else
+					env(v1)
+			),
+			(fun (n:loc) ->
+				if n = to_int (sto(-1)) then
+					a_sem a env sto
+				else if n = -1 then
+					Int (to_int (sto(-1)) + 1)
+				else
+					sto (n)
+	  	)
+	  )
+        
 	| _ -> raise (Failure "Semantic not implemented yet")
 ;;

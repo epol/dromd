@@ -35,6 +35,6 @@ type stm =
 	| Sifthenelse of b_exp * stm * stm
 	| Swhile of b_exp * stm
 	| Sblock of stm
-	| Scall of vname
+	| Scall of vname * a_exp
 	| Sprint of a_exp
 ;;
