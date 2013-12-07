@@ -13,7 +13,7 @@ type a_exp =
 	| Acouple of a_exp * a_exp
 	| Aproj1 of a_exp
 	| Aproj2 of a_exp
-    | Apnt2val of vname
+  | Apnt2val of vname
 ;;
 
 type b_exp =
@@ -28,7 +28,6 @@ type b_exp =
 
 type stm =
 	| Sassign of vname * a_exp
-    | Sinitialize of vname * a_exp
 	| Sskip
 	| Slet of vname * a_exp
 	| Sfun of vname * vname * stm

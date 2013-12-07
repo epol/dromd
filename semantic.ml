@@ -1,5 +1,7 @@
 (* semantica *)
 
+#use "syntax.ml"
+
 type loc = int;; (* indirizzi di memoria *)
 
 type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result;;
@@ -28,9 +30,10 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Acouple (a1,a2) -> Couple (a_sem a1 env sto,a_sem a2 env sto)
 	| Aproj1 Acouple (a1, a2) -> a_sem a1 env sto
 	| Aproj2 Acouple (a1, a2) -> a_sem a2 env sto
-    | Apnt2val v -> match sto (env v) with
-        | Pointer p -> sto ( p )
-        | _ -> raise (Failure "Not a pointer")
+  | Apnt2val v -> (match sto (env v) with
+    | Pointer p -> sto ( p )
+    | _ -> raise (Failure "Not a pointer")
+    )
 	| _ -> raise (Failure "Invalid a-exp")
 ;;
 
@@ -42,5 +45,5 @@ let rec b_sem (b:b_exp) (env:environment) (sto:storage) = match b with
   | Bleq (a1,a2) -> Bool (to_int(a_sem a1 env sto) <= to_int(a_sem a2 env sto))
   | Bnot b1 -> Bool ( not( to_bool (b_sem b1 env sto)))
   | Band (b1,b2) -> Bool ( (to_bool ( b_sem b1 env sto )) && (to_bool (b_sem b2 env sto)))
-  | _ -> raise (Failure "Invalid b-exp")
+  (*| _ -> raise (Failure "Invalid b-exp")*)
 ;;
