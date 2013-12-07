@@ -1,6 +1,8 @@
 (* semantica *)
 
-type result = Int of int | Bool of bool | Couple of result*result;;
+type loc = int;; (* indirizzi di memoria *)
+
+type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result;;
 
 let to_int (r:result) = match r with
 	| Int i -> i
@@ -10,8 +12,6 @@ let to_int (r:result) = match r with
 let to_bool (r:result) = match r with
   | Bool b -> b
   | _ -> raise (Failure "Wrong data type in conversion")
-
-type loc = int;; (* indirizzi di memoria *)
 
 type environment = vname -> loc;;
 type storage = loc -> result;;
@@ -28,6 +28,9 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Acouple (a1,a2) -> Couple (a_sem a1 env sto,a_sem a2 env sto)
 	| Aproj1 Acouple (a1, a2) -> a_sem a1 env sto
 	| Aproj2 Acouple (a1, a2) -> a_sem a2 env sto
+    | Apnt2val v -> match sto (env v) with
+        | Pointer p -> sto ( p )
+        | _ -> raise (failure "Not a pointer")
 	| _ -> raise (Failure "Invalid a-exp")
 ;;
 
