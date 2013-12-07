@@ -41,6 +41,6 @@ let rec b_sem (b:b_exp) (env:environment) (sto:storage) = match b with
   | Bequal (a1,a2) -> Bool (to_int(a_sem a1 env sto) = to_int(a_sem a2 env sto)) 
   | Bleq (a1,a2) -> Bool (to_int(a_sem a1 env sto) <= to_int(a_sem a2 env sto))
   | Bnot b1 -> Bool ( not( to_bool (b_sem b1 env sto)))
-  | Band (b1,b2) -> Bool ( (to_bool (b1 env sto)) && (to_bool (b2 env sto)))
+  | Band (b1,b2) -> Bool ( (to_bool ( b_sem b1 env sto )) && (to_bool (b_sem b2 env sto)))
   | _ -> raise (Failure "Invalid b-exp")
 ;;
