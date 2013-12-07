@@ -47,3 +47,71 @@ let rec b_sem (b:b_exp) (env:environment) (sto:storage) = match b with
   | Band (b1,b2) -> Bool ( (to_bool ( b_sem b1 env sto )) && (to_bool (b_sem b2 env sto)))
   (*| _ -> raise (Failure "Invalid b-exp")*)
 ;;
+
+let rec print_result r = match r with
+	| Int n ->
+		Printf.printf "%d" n
+	| Couple (e1,e2) ->
+		Printf.printf "(";
+		print_result e1;
+		Printf.printf ",";		
+		print_result e2;
+		Printf.printf ")"
+	| Bool b ->
+		Printf.printf "%b" b
+	| Pointer p ->
+		Printf.printf "%d" p
+;;
+
+let rec sem (s:stm) (env:environment) (sto:storage) = match s with
+	| Slet (v,a) ->
+	  (
+			(fun (v1:vname) ->
+				if v1 = v then
+					to_int (sto(-1))
+				else
+					env(v1)
+			),
+			(fun (n:loc) ->
+				if n = to_int (sto(-1)) then
+					a_sem a env sto
+				else if n = -1 then
+					Int (to_int (sto(-1)) + 1)
+				else
+					sto (n)
+	  	)
+	  )
+	| Sskip -> (env, sto)
+	| Sassign (v,a) ->
+	  (
+			env,
+			(fun (n:loc) ->
+				if n = env v then
+					a_sem a env sto
+				else
+					sto (n)
+	  	)
+	  )
+	| Ssequence (s1,s2) ->
+		let (env1, sto1) = sem s1 env sto in
+			sem s2 env1 sto1
+	| Sifthenelse (b,s1,s2) ->
+		let b_value = to_bool (b_sem b env sto) in
+			if b_value then
+				sem s1 env sto
+			else
+				sem s2 env sto
+	| Swhile (b,s1) ->
+		let b_value = to_bool (b_sem b env sto) in
+			if b_value then
+				let (env1,sto1) = sem s1 env sto in
+					sem s env1 sto1
+			else
+				(env,sto)
+	| Sprint a ->
+		let a_value=a_sem a env sto in
+			print_result a_value;
+			Printf.printf "\n";
+			(env, sto)
+	| _ -> raise (Failure "Semantic not implemented yet")
+;;
