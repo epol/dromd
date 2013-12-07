@@ -32,8 +32,9 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 ;;
 
 let rec b_sem (b:a_exp) (env:environment) (sto:storage) = match b with
-  | Btrue -> true
-  | Bfalse -> false
+  | Bvar v -> sto (env v)
+  | Btrue -> Bool true
+  | Bfalse -> Bool false
   | Bequal (a1,a2) -> Bool (to_int(a_sem a1 env sto) = to_int(a_sem a2 env sto)) 
   | Bleq (a1,a2) -> Bool (to_int(a_sem a1 env sto) <= to_int(a_sem a2 env sto))
   | Bnot b1 -> Bool ( not( to_bool (b_sem b1 env sto)))

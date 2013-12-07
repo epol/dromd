@@ -16,6 +16,7 @@ type a_exp =
 ;;
 
 type b_exp =
+        | Bvar of vname
 	| Btrue
 	| Bfalse
 	| Bequal of a_exp * a_exp
