@@ -27,9 +27,29 @@ let br=b_sem (Bnot(Bequal(Avar "x", Anum 7))) env sto;;
 printf "%d \n" (to_int r );;
 printf "%b \n" (to_bool br );;
 
+(*
 let s = Ssequence(Slet("z", Aplus(Avar "x", Avar "y")), Swhile(Bleq(Anum 7, Avar "z"), Ssequence(Sprint (Avar "z"), Sassign("z", Aminus(Avar "z", Anum 1))))) ;;
 let (env1, sto1) = sem s env sto;;
 
 let s2 = Ssequence(Sprint(Avar "x"),Sprint(Avar "y")) ;;
 let (env2,sto2) = sem s2 env1 sto1;;
+*)
+
+let s = Ssequence( Ssequence ( Sfun ("g","t",Sprint( Avar "t")) , 
+	Sblock ( 
+		Ssequence ( 
+			Slet ("t", Anum 3 ) , 
+			
+			Ssequence ( 
+				Sfun ( "f" , "s" , 
+ 					Sprint ( Aplus ( ( Avar "t" ) , (Avar "s" )) ) 
+					) ,
+				Sassign ( "g" , Avar "f")
+				)
+
+			)
+		) ), 
+		Scall ( "g" , Anum 4 ) 
+	);;
+let (env1, sto1) = sem s env sto ;;
 
