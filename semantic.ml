@@ -34,7 +34,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| _ -> raise (Failure "Invalid a-exp")
 ;;
 
-let rec b_sem (b:a_exp) (env:environment) (sto:storage) = match b with
+let rec b_sem (b:b_exp) (env:environment) (sto:storage) = match b with
   | Bvar v -> sto (env v)
   | Btrue -> Bool true
   | Bfalse -> Bool false
