@@ -1,6 +1,7 @@
  (* sintassi *)
 
 type vname = string
+type tag = Var | Const ;;
 
 type a_exp = 
 	| Avar of vname
@@ -31,7 +32,7 @@ type b_exp =
 type stm =
 	| Sassign of vname * a_exp								(* v1 := a1																										*)
 	| Sskip																		(* skip																												*)
-	| Slet of vname * a_exp										(* var v1 := a1																								*)
+	| Slet of tag * vname * a_exp							(* tag v1 := a1																								*)
 	| Sfun of vname * vname * stm							(* fun f (t) := s1																						*)
 	| Ssequence of stm * stm									(* s1 ; s2																										*)
 	| Sifthenelse of b_exp * stm * stm				(* if b then s1 else s2																				*)
@@ -39,6 +40,6 @@ type stm =
 	| Sblock of stm														(* begin s1 end																								*)
 	| Scall of vname * a_exp									(* f ( a1)																										*)
 	| Sprint of a_exp													(* print (a1)																									*)
-	|	SletArray of vname * a_exp * a_exp			(* var arrayName [arrayLengthExp] := arrayInitialValueExp			*)
+	|	SletArray of tag *vname * a_exp * a_exp	(* tag arrayName [arrayLengthExp] := arrayInitialValueExp			*)
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 														*)
 ;;

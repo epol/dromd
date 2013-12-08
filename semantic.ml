@@ -4,7 +4,6 @@
 
 type loc = int;; (* indirizzi di memoria *)
 type environment = vname -> loc;;
-type tag = Var | Const ;;
 type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result | Func of stm * vname * environment | Array of loc * int ;;
 type storage = loc -> result * tag ;;
 
@@ -19,8 +18,8 @@ let to_bool (r:result) = match r with
   | _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
-let sto_to_result ((r:result) , (t:tag)) = r 
-;;
+let sto_to_result ((r:result) , (t:tag)) = r ;;
+let sto_to_tag ((r:result), (t:tag)) = t ;;
 
 let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Avar v -> sto_to_result (sto (env v) )
@@ -87,7 +86,7 @@ let rec print_result r = match r with
 ;;
 
 let rec sem (s:stm) (env:environment) (sto:storage) = match s with
-	| Slet (v,a) ->
+	| Slet (t,v,a) ->
 	  (
 	  	let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
 				(fun (v1:vname) ->
@@ -98,7 +97,7 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 				),
 				(fun (n:loc) ->
 					if n = insertPosition then
-						a_sem a env sto , Var
+						a_sem a env sto , t
 					else if n = -1 then
 						(Int (insertPosition + 1)  , Var)
 					else
@@ -107,16 +106,20 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 	  )
 	| Sskip -> (env, sto)
 	| Sassign (v,a) ->
-		(* TODO implment the const block *)
-	  (
-			env,
-			(fun (n:loc) ->
-				if n = env v then
-					a_sem a env sto , Var
-				else
-					sto (n)
-	  	)
-	  )
+		(
+			match sto_to_tag ( sto (env v)) with
+				| Var ->
+					(
+						env,
+						(fun (n:loc) ->
+							if n = env v then
+								a_sem a env sto , Var
+							else
+								sto (n)
+						)
+					)
+				|	Const -> raise (Failure "You can't modify a const")
+		)
 	| Ssequence (s1,s2) ->
 		let (env1, sto1) = sem s1 env sto in
 			sem s2 env1 sto1
@@ -187,7 +190,7 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 										(env , sto2)
 				| _ -> raise (Failure "Call to an invalid function")
 		)
-	|	SletArray ( arrayName , arrayLengthExp , arrayInitialValueExp ) ->
+	|	SletArray ( t , arrayName , arrayLengthExp , arrayInitialValueExp ) ->
 		(
 			match ( a_sem arrayLengthExp env sto , a_sem arrayInitialValueExp env sto ) with 
 				|	(Int arrayLength , Int arrayInitialValue ) ->
@@ -200,8 +203,8 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 									env (v)
 							),
 							(fun (n:loc) ->
-								if n=insertPosition then Array ( insertPosition +1 , arrayLength ) , Var
-								else if n> insertPosition && n <= insertPosition +arrayLength then Int arrayInitialValue , Var
+								if n=insertPosition then Array ( insertPosition +1 , arrayLength ) , t
+								else if n> insertPosition && n <= insertPosition +arrayLength then Int arrayInitialValue , t
 								else if n = -1 then Int (insertPosition + 1 + arrayLength) , Var
 								else sto(n)
 							)
@@ -209,23 +212,27 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 				| _ -> raise (Failure "Invalid array initialization") 
 		)
 	| SassignArray (arrayName , indexExp, valueExp) ->
-	(* TODO: check if arrayName is constant *)
 		(
-			match (a_sem indexExp env sto , sto_to_result (sto ( env arrayName ) )) with 
-				|	(Int index , Array (firstElement ,  arrayLength ))->
-					if index < arrayLength then
-						(
-							env,
-							(fun (n:loc) ->
-								if n = firstElement + index  then
-									a_sem valueExp env sto , Var
-								else
-									sto (n)
-							)
-						)
-					else 
-						raise (Failure "Segmentation Fault")
-				| _ -> raise (Failure "Invalid array access") 
+			match sto_to_tag ( sto (env arrayName)) with
+				| Var ->	
+					(
+						match (a_sem indexExp env sto , sto_to_result (sto ( env arrayName ) )) with 
+							|	(Int index , Array (firstElement ,  arrayLength ))->
+								if index < arrayLength then
+									(
+										env,
+										(fun (n:loc) ->
+											if n = firstElement + index  then
+												a_sem valueExp env sto , Var
+											else
+												sto (n)
+										)
+									)
+								else 
+									raise (Failure "Segmentation Fault")
+							| _ -> raise (Failure "Invalid array access") 
+					)
+				| Const -> raise (Failure "You can't modify a const")
 		)
 (*	| _ -> raise (Failure "Semantic not implemented yet")   *)
 ;;

@@ -38,7 +38,7 @@ let (env2,sto2) = sem s2 env1 sto1;;
 let s = Ssequence( Ssequence ( Sfun ("g","t",Sprint( Avar "t")) , 
 	Sblock ( 
 		Ssequence ( 
-			Slet ("t", Anum 3 ) , 
+			Slet (Var, "t", Anum 3 ) , 
 			
 			Ssequence ( 
 				Sfun ( "f" , "s" , 
@@ -53,7 +53,7 @@ let s = Ssequence( Ssequence ( Sfun ("g","t",Sprint( Avar "t")) ,
 	);;	
 let (env1, sto1) = sem s env sto ;;
 
-let s2 = Ssequence ( SletArray ("array",Anum 20 , Anum 8) , Sprint ( AvarArray ( "array", Anum 19 ) ) );;
+let s2 = Ssequence ( SletArray (Var ,"array",Anum 20 , Anum 8) , Sprint ( AvarArray ( "array", Anum 19 ) ) );;
 let (env2,sto2) = sem s2 env1 sto1 ;;	
 
 let s3 = Ssequence ( SassignArray ("array",Anum 10, Anum 5) , Sprint( AvarArray ("array" ,Anum 10)));;
