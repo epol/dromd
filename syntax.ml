@@ -28,16 +28,16 @@ type b_exp =
 ;;
 
 type stm =
-	| Sassign of vname * a_exp
-	| Sskip
-	| Slet of vname * a_exp
-	| Sfun of vname * vname * stm
-	| Ssequence of stm * stm
-	| Sifthenelse of b_exp * stm * stm
-	| Swhile of b_exp * stm
-	| Sblock of stm
-	| Scall of vname * a_exp
-	| Sprint of a_exp
-	|	SletArray of vname * a_exp * a_exp
-	|	SassignArray of vname * a_exp * a_exp
+	| Sassign of vname * a_exp								(* v1 := a1																										*)
+	| Sskip																		(* skip																												*)
+	| Slet of vname * a_exp										(* var v1 := a1																								*)
+	| Sfun of vname * vname * stm							(* fun f (t) := s1																						*)
+	| Ssequence of stm * stm									(* s1 ; s2																										*)
+	| Sifthenelse of b_exp * stm * stm				(* if b then s1 else s2																				*)
+	| Swhile of b_exp * stm										(* while (b1) do s1 																					*)
+	| Sblock of stm														(* begin s1 end																								*)
+	| Scall of vname * a_exp									(* f ( a1)																										*)
+	| Sprint of a_exp													(* print (a1)																									*)
+	|	SletArray of vname * a_exp * a_exp			(* var arrayName [arrayLengthExp] := arrayInitialValueExp			*)
+	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 														*)
 ;;
