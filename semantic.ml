@@ -5,7 +5,7 @@
 type loc = int;; (* indirizzi di memoria *)
 type environment = vname -> loc;;
 
-type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result | Func of stm * vname * environment ;;
+type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result | Func of stm * vname * environment | Array of loc * int ;;
 
 let to_int (r:result) = match r with
 	| Int i -> i
@@ -35,14 +35,15 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
     | Pointer p -> sto ( p )
     | _ -> raise (Failure "Not a pointer")
     )
+  | Avar2pnt v -> Pointer (env v)
 	| AvarArray (arrayName , indexExp) -> 
 		(
 			match a_sem indexExp env sto with
 				|	Int index ->
-					( match sto ((env arrayName )-1)  with
-							|	Int arrayLength ->
+					( match sto (env arrayName )  with
+							|	Array ( firstElement , arrayLength) ->
 								if index < arrayLength then
-									sto (env arrayName + index)
+									sto (firstElement + index)
 								else 
 									raise (Failure "Segmentation Fault!")
 							| _ -> raise (Failure "Is that an array?")
@@ -78,6 +79,8 @@ let rec print_result r = match r with
 		Printf.printf "%d" p
 	|	Func (s , v, e) ->
 		Printf.printf "This is a function\n"
+	| Array ( address , length ) ->
+		Printf.printf "Array %d %d" address length
 ;;
 
 let rec sem (s:stm) (env:environment) (sto:storage) = match s with
@@ -179,29 +182,31 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 		(
 			match ( a_sem arrayLengthExp env sto , a_sem arrayInitialValueExp env sto ) with 
 				|	(Int arrayLength , Int arrayInitialValue ) ->
-					(fun (v:vname) ->
-						if v = arrayName then 
-							(to_int (sto(-1))) + 1
-						else 
-							env (v)
-					),
-					(fun (n:loc) ->
-						if n=to_int(sto(-1)) then Int arrayLength
-						else if n>to_int(sto(-1)) && n <= to_int(sto(-1)) +arrayLength then Int arrayInitialValue
-						else if n = -1 then Int (to_int (sto (-1)) + 1 + arrayLength)
-						else sto(n)
+					(
+						(fun (v:vname) ->
+							if v = arrayName then 
+								to_int (sto(-1))
+							else 
+								env (v)
+						),
+						(fun (n:loc) ->
+							if n=to_int(sto(-1)) then Array ( to_int (sto (-1)) +1 , arrayLength )
+							else if n>to_int(sto(-1)) && n <= to_int(sto(-1)) +arrayLength then Int arrayInitialValue
+							else if n = -1 then Int (to_int (sto (-1)) + 1 + arrayLength)
+							else sto(n)
+						)
 					)
 				| _ -> raise (Failure "Invalid array initialization") 
 		)
 	| SassignArray (arrayName , indexExp, valueExp) ->
 		(
-			match (a_sem indexExp env sto , sto ( env arrayName - 1 ) ) with 
-				|	(Int index , Int arrayLength)->
+			match (a_sem indexExp env sto , sto ( env arrayName ) ) with 
+				|	(Int index , Array (firstElement ,  arrayLength ))->
 					if index < arrayLength then
 						(
 							env,
 							(fun (n:loc) ->
-								if n = (env arrayName) + index  then
+								if n = firstElement + index  then
 									a_sem valueExp env sto
 								else
 									sto (n)

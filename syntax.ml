@@ -14,6 +14,7 @@ type a_exp =
 	| Aproj1 of a_exp
 	| Aproj2 of a_exp
   | Apnt2val of vname
+  |	Avar2pnt of vname
   |	AvarArray of vname * a_exp
 ;;
 
