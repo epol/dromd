@@ -195,18 +195,21 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 		)
 	| SassignArray (arrayName , indexExp, valueExp) ->
 		(
-			match a_sem indexExp env sto with 
-				|	Int index ->
-					(
-						env,
-						(fun (n:loc) ->
-							if n = (env arrayName) + index  then
-								a_sem valueExp env sto
-							else
-								sto (n)
+			match (a_sem indexExp env sto , sto ( env arrayName - 1 ) ) with 
+				|	(Int index , Int arrayLength)->
+					if index < arrayLength then
+						(
+							env,
+							(fun (n:loc) ->
+								if n = (env arrayName) + index  then
+									a_sem valueExp env sto
+								else
+									sto (n)
+							)
 						)
-					)
-				| _ -> raise (Failure "Invalid index") 
+					else 
+						raise (Failure "Segmentation Fault")
+				| _ -> raise (Failure "Invalid array access") 
 		)
 (*	| _ -> raise (Failure "Semantic not implemented yet")   *)
 ;;
