@@ -10,6 +10,7 @@ type storage = loc -> result * tag ;;
 
 let to_int (r:result) = match r with
 	| Int i -> i
+	| Pointer p -> p
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
@@ -51,6 +52,12 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 							| _ -> raise (Failure "Is that an array?")
 					)
 				|	_ -> raise (Failure "Invalid array index expression")
+		)
+	| Aarr2pnt v -> 
+		(
+			match sto_to_result (sto (env v)) with 
+				| Array ( p , n ) -> Pointer p
+				| _ -> raise ( Failure ("This is not an array"))
 		)
 	| _ -> raise (Failure "Invalid a-exp")
 ;;
