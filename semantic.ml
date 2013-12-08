@@ -176,23 +176,38 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 				| _ -> raise (Failure "Call to an invalid function")
 		)
 	|	SletArray ( arrayName , arrayLengthExp , arrayInitialValueExp ) ->
-		match ( a_sem arrayLengthExp env sto , a_sem arrayInitialValueExp env sto ) with 
-			|	(Int arrayLength , Int arrayInitialValue ) ->
-				(fun (v:vname) ->
-					if v = arrayName then 
-						(to_int (sto(-1))) + 1
-					else 
-						env (v)
-				),
-				(fun (n:loc) ->
-					if n=to_int(sto(-1)) then Int arrayLength
-					else if n>to_int(sto(-1)) && n <= to_int(sto(-1)) +arrayLength then Int arrayInitialValue
-					else if n = -1 then Int (to_int (sto (-1)) + 1 + arrayLength)
-					else sto(n)
-				)
-			| _ -> raise (Failure "Invalid array initialization") 
-			
-			
+		(
+			match ( a_sem arrayLengthExp env sto , a_sem arrayInitialValueExp env sto ) with 
+				|	(Int arrayLength , Int arrayInitialValue ) ->
+					(fun (v:vname) ->
+						if v = arrayName then 
+							(to_int (sto(-1))) + 1
+						else 
+							env (v)
+					),
+					(fun (n:loc) ->
+						if n=to_int(sto(-1)) then Int arrayLength
+						else if n>to_int(sto(-1)) && n <= to_int(sto(-1)) +arrayLength then Int arrayInitialValue
+						else if n = -1 then Int (to_int (sto (-1)) + 1 + arrayLength)
+						else sto(n)
+					)
+				| _ -> raise (Failure "Invalid array initialization") 
+		)
+	| SassignArray (arrayName , indexExp, valueExp) ->
+		(
+			match a_sem indexExp env sto with 
+				|	Int index ->
+					(
+						env,
+						(fun (n:loc) ->
+							if n = (env arrayName) + index  then
+								a_sem valueExp env sto
+							else
+								sto (n)
+						)
+					)
+				| _ -> raise (Failure "Invalid index") 
+		)
 (*	| _ -> raise (Failure "Semantic not implemented yet")   *)
 ;;
 

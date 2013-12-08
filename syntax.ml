@@ -39,4 +39,5 @@ type stm =
 	| Scall of vname * a_exp
 	| Sprint of a_exp
 	|	SletArray of vname * a_exp * a_exp
+	|	SassignArray of vname * a_exp * a_exp
 ;;

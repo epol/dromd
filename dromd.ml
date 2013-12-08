@@ -56,6 +56,8 @@ let (env1, sto1) = sem s env sto ;;
 let s2 = Ssequence ( SletArray ("array",Anum 20 , Anum 8) , Sprint ( AvarArray ( "array", Anum 19 ) ) );;
 let (env2,sto2) = sem s2 env1 sto1 ;;	
 
+let s3 = Ssequence ( SassignArray ("array",Anum 10, Anum 5) , Sprint( AvarArray ("array" ,Anum 10)));;
+let (env3,sto3) = sem s3 env2 sto2 ;;
 
 
 
