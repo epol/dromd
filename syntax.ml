@@ -42,4 +42,5 @@ type stm =
 	| Sprint of a_exp													(* print (a1)																									*)
 	|	SletArray of tag *vname * a_exp * a_exp	(* tag arrayName [arrayLengthExp] := arrayInitialValueExp			*)
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 														*)
+	| SassignPnt of vname * a_exp 						(* *v1 := a1																									*)
 ;;

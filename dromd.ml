@@ -35,6 +35,7 @@ let s2 = Ssequence(Sprint(Avar "x"),Sprint(Avar "y")) ;;
 let (env2,sto2) = sem s2 env1 sto1;;
 *)
 
+(* Testing the function variable scoping *)
 let s = Ssequence( Ssequence ( Sfun ("g","t",Sprint( Avar "t")) , 
 	Sblock ( 
 		Ssequence ( 
@@ -53,11 +54,27 @@ let s = Ssequence( Ssequence ( Sfun ("g","t",Sprint( Avar "t")) ,
 	);;	
 let (env1, sto1) = sem s env sto ;;
 
+(* Creating an array *)
 let s2 = Ssequence ( SletArray (Var ,"array",Anum 20 , Anum 8) , Sprint ( AvarArray ( "array", Anum 19 ) ) );;
 let (env2,sto2) = sem s2 env1 sto1 ;;	
 
+(* Writing on an array *)
 let s3 = Ssequence ( SassignArray ("array",Anum 10, Anum 5) , Sprint( AvarArray ("array" ,Anum 10)));;
 let (env3,sto3) = sem s3 env2 sto2 ;;
+
+
+(* let's try call by reference *)
+let s4 = Ssequence ( 
+		Sfun ("f" , "t", SassignPnt ( "t", Aplus(Apnt2val "t", Anum 1))) , 
+		Ssequence ( 
+			Slet ( Var , "t" , Anum 11),
+			Ssequence (
+				Scall ( "f" , Avar2pnt "t"),
+				Sprint (Avar "t")
+			)
+		)
+	) ;;
+let (env4,sto4) = sem s4 env3 sto3 ;;
 
 
 

@@ -85,6 +85,21 @@ let rec print_result r = match r with
 		Printf.printf "Array %d %d" address length
 ;;
 
+let generic_assign (location:loc) (value:result) (env:environment) (sto:storage) = 
+	match sto_to_tag ( sto location ) with
+	| Var ->
+		(
+			env,
+			(fun (n:loc) ->
+				if n = location then
+					value , Var
+				else
+					sto (n)
+			)
+		)
+	|	Const -> raise (Failure "You can't modify a const")
+;;
+
 let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 	| Slet (t,v,a) ->
 	  (
@@ -105,20 +120,12 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 				)
 	  )
 	| Sskip -> (env, sto)
-	| Sassign (v,a) ->
+	| Sassign (v,a) -> generic_assign  (env v) (a_sem a env sto) env sto
+	| SassignPnt (v,a) -> 
 		(
-			match sto_to_tag ( sto (env v)) with
-				| Var ->
-					(
-						env,
-						(fun (n:loc) ->
-							if n = env v then
-								a_sem a env sto , Var
-							else
-								sto (n)
-						)
-					)
-				|	Const -> raise (Failure "You can't modify a const")
+			match sto (env v) with
+				| (Pointer p , t ) -> generic_assign p (a_sem a env sto) env sto
+				| _ -> raise (Failure "This is not a pointer")		
 		)
 	| Ssequence (s1,s2) ->
 		let (env1, sto1) = sem s1 env sto in
