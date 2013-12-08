@@ -50,6 +50,12 @@ let s = Ssequence( Ssequence ( Sfun ("g","t",Sprint( Avar "t")) ,
 			)
 		) ), 
 		Scall ( "g" , Anum 4 ) 
-	);;
+	);;	
 let (env1, sto1) = sem s env sto ;;
+
+let s2 = Ssequence ( SletArray ("array",Anum 20 , Anum 8) , Sprint ( AvarArray ( "array", Anum 19 ) ) );;
+let (env2,sto2) = sem s2 env1 sto1 ;;	
+
+
+
 
