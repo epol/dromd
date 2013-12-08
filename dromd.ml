@@ -10,10 +10,10 @@ let env = function
 ;;
 
 let sto = function
-	| -1 -> Int 3
-	| 1 -> Int 5
-	| 2 -> Int 7
-	| _ -> Int 0
+	| -1 -> Int 3 , Var
+	| 1 -> Int 5 , Var
+	| 2 -> Int 7 , Var
+	| _ -> Int 0 , Const
 ;;
 
 open Printf;;

@@ -4,8 +4,10 @@
 
 type loc = int;; (* indirizzi di memoria *)
 type environment = vname -> loc;;
-
+type tag = Var | Const ;;
 type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result | Func of stm * vname * environment | Array of loc * int ;;
+type storage = loc -> result * tag ;;
+
 
 let to_int (r:result) = match r with
 	| Int i -> i
@@ -15,12 +17,13 @@ let to_int (r:result) = match r with
 let to_bool (r:result) = match r with
   | Bool b -> b
   | _ -> raise (Failure "Wrong data type in conversion")
+;;
 
-
-type storage = loc -> result;;
+let sto_to_result ((r:result) , (t:tag)) = r 
+;;
 
 let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
-	| Avar v -> sto (env v)
+	| Avar v -> sto_to_result (sto (env v) )
 	| Anum n -> Int n
 	| Aplus (a1,a2) -> Int (to_int (a_sem a1 env sto) + to_int (a_sem a2 env sto))
 	| Aminus (a1,a2)-> Int (to_int (a_sem a1 env sto) - to_int (a_sem a2 env sto))
@@ -32,7 +35,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Aproj1 Acouple (a1, a2) -> a_sem a1 env sto
 	| Aproj2 Acouple (a1, a2) -> a_sem a2 env sto
   | Apnt2val v -> (match sto (env v) with
-    | Pointer p -> sto ( p )
+    | ( Pointer p , t ) -> sto_to_result ( sto p )
     | _ -> raise (Failure "Not a pointer")
     )
   | Avar2pnt v -> Pointer (env v)
@@ -40,10 +43,10 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 		(
 			match a_sem indexExp env sto with
 				|	Int index ->
-					( match sto (env arrayName )  with
+					( match sto_to_result (sto (env arrayName ))  with
 							|	Array ( firstElement , arrayLength) ->
 								if index < arrayLength then
-									sto (firstElement + index)
+									sto_to_result (sto (firstElement + index) )
 								else 
 									raise (Failure "Segmentation Fault!")
 							| _ -> raise (Failure "Is that an array?")
@@ -54,7 +57,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 ;;
 
 let rec b_sem (b:b_exp) (env:environment) (sto:storage) = match b with
-  | Bvar v -> sto (env v)
+  | Bvar v -> sto_to_result (sto (env v))
   | Btrue -> Bool true
   | Bfalse -> Bool false
   | Bequal (a1,a2) -> Bool (to_int(a_sem a1 env sto) = to_int(a_sem a2 env sto)) 
@@ -86,28 +89,30 @@ let rec print_result r = match r with
 let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 	| Slet (v,a) ->
 	  (
-			(fun (v1:vname) ->
-				if v1 = v then
-					to_int (sto(-1))
-				else
-					env(v1)
-			),
-			(fun (n:loc) ->
-				if n = to_int (sto(-1)) then
-					a_sem a env sto
-				else if n = -1 then
-					Int (to_int (sto(-1)) + 1)
-				else
-					sto (n)
-	  	)
+	  	let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
+				(fun (v1:vname) ->
+					if v1 = v then
+						insertPosition
+					else
+						env(v1)
+				),
+				(fun (n:loc) ->
+					if n = insertPosition then
+						a_sem a env sto , Var
+					else if n = -1 then
+						(Int (insertPosition + 1)  , Var)
+					else
+						sto (n)
+				)
 	  )
 	| Sskip -> (env, sto)
 	| Sassign (v,a) ->
+		(* TODO implment the const block *)
 	  (
 			env,
 			(fun (n:loc) ->
 				if n = env v then
-					a_sem a env sto
+					a_sem a env sto , Var
 				else
 					sto (n)
 	  	)
@@ -137,77 +142,83 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 		let (env1,sto1) = sem s1 env sto in
 			(env,sto1)
 	| Sfun (f , p , s1) ->
-		(
-			(fun (v1:vname) ->
-				if v1 =f then 
-					to_int (sto(-1))
-				else
-					env(v1)
-			),
-			(fun (n:loc) ->
-				if n = to_int(sto(-1)) then 
-					Func ( s1 , p, env)
-				else if n = -1 then
-					Int (to_int( sto(-1)) +1 )
+		let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
+			(
+				(fun (v1:vname) ->
+					if v1 =f then 
+						insertPosition
 					else
-						sto(n)
+						env(v1)
+				),
+				(fun (n:loc) ->
+					if n = insertPosition then 
+						Func ( s1 , p, env) , Var 
+					else if n = -1 then
+							Int ( insertPosition +1 ) , Var
+						else
+							sto(n)
+				)
 			)
-		)
 	|	Scall ( f , a) -> 
 		(
-			match sto (env f) with
+			match sto_to_result (sto (env f)) with
 				| Func ( s1, v , envf ) ->
 					let ( env1 , sto1 )=
-						( (
-							fun (v1:vname) ->
-								if v1=v then
-									to_int (sto(-1))
-								else
-									envf(v1)
-							), (
-							fun ( n:loc) ->
-								if n = to_int (sto(-1)) then
-									a_sem a env sto
-								else if n = -1 then 
-										Int (to_int (sto(-1)) +1)
-									else
-										sto(n)
-								)
-							) in
-							let (env2, sto2) = sem s1 env1 sto1 in
-								(env , sto2)
+						let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
+							( 
+								(
+									fun (v1:vname) ->
+										if v1=v then
+											insertPosition
+										else
+											envf(v1)
+								), 
+								(
+									fun ( n:loc) ->
+										if n = insertPosition then
+											a_sem a env sto , Var
+										else if n = -1 then 
+												Int (insertPosition +1) , Var
+											else
+												sto(n)
+									)
+								) in
+									let (env2, sto2) = sem s1 env1 sto1 in
+										(env , sto2)
 				| _ -> raise (Failure "Call to an invalid function")
 		)
 	|	SletArray ( arrayName , arrayLengthExp , arrayInitialValueExp ) ->
 		(
 			match ( a_sem arrayLengthExp env sto , a_sem arrayInitialValueExp env sto ) with 
 				|	(Int arrayLength , Int arrayInitialValue ) ->
-					(
-						(fun (v:vname) ->
-							if v = arrayName then 
-								to_int (sto(-1))
-							else 
-								env (v)
-						),
-						(fun (n:loc) ->
-							if n=to_int(sto(-1)) then Array ( to_int (sto (-1)) +1 , arrayLength )
-							else if n>to_int(sto(-1)) && n <= to_int(sto(-1)) +arrayLength then Int arrayInitialValue
-							else if n = -1 then Int (to_int (sto (-1)) + 1 + arrayLength)
-							else sto(n)
+					let insertPosition = to_int ( sto_to_result (sto (-1) )) in
+						(
+							(fun (v:vname) ->
+								if v = arrayName then 
+									insertPosition
+								else 
+									env (v)
+							),
+							(fun (n:loc) ->
+								if n=insertPosition then Array ( insertPosition +1 , arrayLength ) , Var
+								else if n> insertPosition && n <= insertPosition +arrayLength then Int arrayInitialValue , Var
+								else if n = -1 then Int (insertPosition + 1 + arrayLength) , Var
+								else sto(n)
+							)
 						)
-					)
 				| _ -> raise (Failure "Invalid array initialization") 
 		)
 	| SassignArray (arrayName , indexExp, valueExp) ->
+	(* TODO: check if arrayName is constant *)
 		(
-			match (a_sem indexExp env sto , sto ( env arrayName ) ) with 
+			match (a_sem indexExp env sto , sto_to_result (sto ( env arrayName ) )) with 
 				|	(Int index , Array (firstElement ,  arrayLength ))->
 					if index < arrayLength then
 						(
 							env,
 							(fun (n:loc) ->
 								if n = firstElement + index  then
-									a_sem valueExp env sto
+									a_sem valueExp env sto , Var
 								else
 									sto (n)
 							)
