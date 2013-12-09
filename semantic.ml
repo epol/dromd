@@ -26,7 +26,7 @@
 
 type loc = int;; (* indirizzi di memoria *)
 type environment = vname -> loc;;
-type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result | Func of stm * vname * environment | Array of loc * int | List of result * Pointer;;
+type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result | Func of stm * vname * environment | Array of loc * int | List of result * loc;;
 type storage = loc -> result * tag ;;
 
 
