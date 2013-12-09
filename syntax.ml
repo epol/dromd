@@ -34,13 +34,18 @@ type a_exp =
 	| Aneg of a_exp (* -a1 *)
 	| Aprod of a_exp * a_exp (* a1 * a2 *)
 	| Adiv of a_exp * a_exp (* a1 / a2 *)
+	(* couples *)
 	| Acouple of a_exp * a_exp
 	| Aproj1 of a_exp
 	| Aproj2 of a_exp
+	(* array *)
+  |	AvarArray of vname * a_exp
+	(* pointers *)
   | Apnt2val of vname
   |	Avar2pnt of vname
-  |	AvarArray of vname * a_exp
   | Aarr2pnt of vname
+  (* lists *)
+  | Alistof of vname*a_exp
 ;;
 
 type b_exp =
@@ -67,4 +72,8 @@ type stm =
 	|	SletArray of tag *vname * a_exp * a_exp	(* tag arrayName [arrayLengthExp] := arrayInitialValueExp			*)
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 														*)
 	| SassignPnt of vname * a_exp 						(* *v1 := a1																									*)
+	(* lists *)
+	| SconcatList of vname * a_exp 						(* list1 := list1 : list2																				*)
+	| SheadList of vname											(* head(list)																										*)
+	| StailList of vname											(* tail(list)																										*)
 ;;
