@@ -26,7 +26,15 @@
 
 type loc = int;; (* indirizzi di memoria *)
 type environment = vname -> loc;;
-type result = Int of int | Pointer of loc | Bool of bool | Couple of result*result | Func of stm * vname * environment | Array of loc * int | List of result * loc;;
+type result = 
+	| Int of int 
+	| Pointer of loc 
+	| Bool of bool 
+	| Pair of result*result 
+	| Func of stm * vname * environment 
+	| Array of loc * int 
+	| List of result * loc
+;;
 type storage = loc -> result * tag ;;
 
 
@@ -52,7 +60,13 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Aneg a1 -> Int (- to_int (a_sem a1 env sto))
 	| Aprod (a1,a2)-> Int (to_int (a_sem a1 env sto) * to_int (a_sem a2 env sto))
 	| Adiv (a1,a2)-> Int (to_int (a_sem a1 env sto) / to_int (a_sem a2 env sto))
-	| Apair2num p1 -> raise (Failure "Not implemented")
+	| Apair2num p1 -> 
+		(
+			match pair_sem p1 env sto with
+				| Int n -> Int n
+				| Pointer p -> Pointer p
+				| _ -> raise (Failure "I can't do arithmetic with pairs!")
+		)
 	| AvarArray (arrayName , indexExp) -> 
 		(
 			match a_sem indexExp env sto with
@@ -85,6 +99,25 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Aproj1 Acouple (a1, a2) -> a_sem a1 env sto
 	| Aproj2 Acouple (a1, a2) -> a_sem a2 env sto *)
 	| _ -> raise (Failure "Invalid a-exp")
+;;
+
+let rec pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
+	| Pvar v -> sto (env v)
+	| Ppairnum (p1 , a1) -> Pair ( pair_sem p1 env sto, a_sem a1 env sto)
+	| Pnumpair (a1 , p1) -> Pair ( a_sem a1 env sto, pair_sem p1 env sto)
+	| Ppairpair (p1 , p2) -> Pair ( pair_sem p1 env sto, pair_sem p1 env sto)
+	| Pproj1 p1 -> 
+		(
+			match pair_sem p1 env sto with
+				| Pair (r1, r2) -> r1
+				| _ -> raise (Failure "I can only project a couple!")
+		)
+	| Pproj2 p1 -> 
+		(
+			match pair_sem p1 env sto with
+				| Pair (r1, r2) -> r2
+				| _ -> raise (Failure "I can only project a couple!")
+		)
 ;;
 
 (* questa è una riga di commento *)

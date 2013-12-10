@@ -58,7 +58,7 @@ and list_exp =
 	| Lconcat of list_exp * list_exp
 	| Lpushback of list_exp * a_exp
 and pair_exp =
-	| Pnum of int
+    | Pvar of vname
 	| Pnumnum of a_exp * a_exp
 	| Ppairnum of pair_exp * a_exp
 	| Pnumpair of  a_exp * pair_exp
