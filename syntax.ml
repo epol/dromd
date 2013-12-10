@@ -35,8 +35,7 @@ type a_exp =
 	| Aprod of a_exp * a_exp (* a1 * a2 *)
 	| Adiv of a_exp * a_exp (* a1 / a2 *)
 	(* couples *)
-	| Aproj1 of a_exp
-	| Aproj2 of a_exp
+	| Apair2num of pair_exp
 	(* array *)
   |	AvarArray of vname * a_exp
 	(* pointers *)
@@ -45,9 +44,7 @@ type a_exp =
   | Aarr2pnt of vname
   (* lists *)
   | Alistof of vname*a_exp
-;;
-
-type b_exp =
+and b_exp =
   | Bvar of vname
 	| Btrue
 	| Bfalse
@@ -55,18 +52,19 @@ type b_exp =
 	| Bleq of a_exp * a_exp
 	| Bnot of b_exp
 	| Band of b_exp * b_exp
-;;
-
-type list_exp =
+and list_exp =
+	| Lvar of vname
+	| Lempty
 	| Lconcat of list_exp * list_exp
-	| Lconcat of a_exp * list_exp
-;;
-
-type pair_exp =
-	| PNumNum of a_exp * a_exp
-	| PPairNum of pair_exp * a_exp
-	| PNumPair of  a_exp * pair_exp
-	| PPairPair of pair_exp * pair_exp
+	| Lpushback of list_exp * a_exp
+and pair_exp =
+	| Pnum of int
+	| Pnumnum of a_exp * a_exp
+	| Ppairnum of pair_exp * a_exp
+	| Pnumpair of  a_exp * pair_exp
+	| Ppairpair of pair_exp * pair_exp
+	| Pproj1 of pair_exp
+	| Pproj2 of pair_exp
 ;;
 
 type stm =
@@ -84,7 +82,6 @@ type stm =
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 														*)
 	| SassignPnt of vname * a_exp 						(* *v1 := a1																									*)
 	(* lists *)
-	| SconcatList of vname * vname						(* list1 := list1 : list2																				*)
-	| SheadList of vname											(* head(list)																										*)
-	| StailList of vname											(* tail(list)																										*)
+	|	SletList of tag * vname * list_exp    	(* tag arrayName [arrayLengthExp] := arrayInitialValueExp			*)
+	| SassignList of vname * list_exp					(* list1 := list3																								*)
 ;;
