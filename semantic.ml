@@ -94,20 +94,14 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 				| Array ( p , n ) -> Pointer p
 				| _ -> raise ( Failure ("This is not an array"))
 		)
-
-	
-(*	| Avar2pnt v -> Int (env v)   
-	| Acouple (a1,a2) -> Couple (a_sem a1 env sto,a_sem a2 env sto)
-	| Aproj1 Acouple (a1, a2) -> a_sem a1 env sto
-	| Aproj2 Acouple (a1, a2) -> a_sem a2 env sto *)
 	| _ -> raise (Failure "Invalid a-exp")
-;;
 
-let rec pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
-	| Pvar v -> sto (env v)
+and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
+	| Pvar v -> sto_to_result (sto (env v))
+	| Pnumnum (a1, a2) -> Pair ( a_sem a1 env sto, a_sem a2 env sto)
 	| Ppairnum (p1 , a1) -> Pair ( pair_sem p1 env sto, a_sem a1 env sto)
 	| Pnumpair (a1 , p1) -> Pair ( a_sem a1 env sto, pair_sem p1 env sto)
-	| Ppairpair (p1 , p2) -> Pair ( pair_sem p1 env sto, pair_sem p1 env sto)
+	| Ppairpair (p1 , p2) -> Pair ( pair_sem p1 env sto, pair_sem p2 env sto)
 	| Pproj1 p1 -> 
 		(
 			match pair_sem p1 env sto with
@@ -125,38 +119,37 @@ let rec pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
 (* questa è una riga di commento *)
 (* lists semantic *)
 
-let update_storage (sto:storage) (n:loc) (new_value:result) =
-	function 
-		| n -> new_value
-		| x -> sto x
+let update_storage (sto:storage) (n:loc) (new_value:result) x =
+	if x=n then
+		new_value , Var
+	else
+		sto x
 ;;
 
 let rec list_concat (ptr1:loc) (ptr2:loc) (sto:storage) = 
 	match ptr1 with
-		| 0 -> ptr2;
+		| 0 -> (sto,ptr2);
 		| node_ptr ->
 			(match sto node_ptr with
 				| (Node (r, next_node), Var) ->
-					let next_concat=list_concat next_node ptr2 sto in
-						update_storage sto node_ptr (Node(r,next_concat), Var)
+					let (new_sto , next_concat)=list_concat next_node ptr2 sto in
+						(update_storage new_sto node_ptr (Node(r,next_concat)), node_ptr)
 				| _ -> raise (Failure "List does not point to a node.")
 			)
 
-let rec list_sem (l:b_exp) (env:environment) (sto:storage) = match l with
+let rec list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
 	| Lvar v ->
 		(match sto (env v) with
-			| List l -> List l
+			| List l , Var -> List l 
 			| _ -> raise (Failure "Variable in list_exp is not a list.")
 		)
 	| Lempty -> List 0
-	| Lconcat (lexp1, lexp2) ->
-		(
-			match (list_sem lexp1 env sto , list_sem lexp2 env sto ) with
+(*	| Lconcat (lexp1, lexp2) ->
 		let list1=list_sem lexp1 env sto and list2=list_sem lexp2 env sto in
 			(match (list1, list2) with
 				| (List list_ptr1, List list_ptr2) ->
-					List list_concat list_ptr1 list_ptr2 sto
-			)
+					List (list_concat list_ptr1 list_ptr2 sto)
+			)*)
 	| _ -> raise (Failure "Funzione per liste non ancora implementata.")
 ;;
 
@@ -174,7 +167,7 @@ let rec b_sem (b:b_exp) (env:environment) (sto:storage) = match b with
 let rec print_result r = match r with
 	| Int n ->
 		Printf.printf "%d" n
-	| Couple (e1,e2) ->
+	| Pair (e1,e2) ->
 		Printf.printf "(";
 		print_result e1;
 		Printf.printf ",";		
@@ -188,6 +181,7 @@ let rec print_result r = match r with
 		Printf.printf "This is a function\n"
 	| Array ( address , length ) ->
 		Printf.printf "Array %d %d" address length
+	| _ -> raise (Failure "Cannot print a list or a node")
 ;;
 
 let generic_assign (location:loc) (value:result) (env:environment) (sto:storage) = 
@@ -350,7 +344,7 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 				(
 					let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
 						(fun (v1:vname) ->
-							if v1 = v then
+							if v1 = listName then
 								insertPosition
 							else
 								env(v1)
