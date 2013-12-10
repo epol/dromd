@@ -84,6 +84,13 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| _ -> raise (Failure "Invalid a-exp")
 ;;
 
+(* questa è una riga di commento *)
+(* lists semantic *)
+
+let rec list_sem (l:b_exp) (env:environment) (sto:storage) = match l with
+	| 
+;;
+
 let rec b_sem (b:b_exp) (env:environment) (sto:storage) = match b with
   | Bvar v -> sto_to_result (sto (env v))
   | Btrue -> Bool true
