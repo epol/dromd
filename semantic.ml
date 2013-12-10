@@ -52,15 +52,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Aneg a1 -> Int (- to_int (a_sem a1 env sto))
 	| Aprod (a1,a2)-> Int (to_int (a_sem a1 env sto) * to_int (a_sem a2 env sto))
 	| Adiv (a1,a2)-> Int (to_int (a_sem a1 env sto) / to_int (a_sem a2 env sto))
-(*	| Avar2pnt v -> Int (env v)   *)
-	| Acouple (a1,a2) -> Couple (a_sem a1 env sto,a_sem a2 env sto)
-	| Aproj1 Acouple (a1, a2) -> a_sem a1 env sto
-	| Aproj2 Acouple (a1, a2) -> a_sem a2 env sto
-  | Apnt2val v -> (match sto (env v) with
-    | ( Pointer p , t ) -> sto_to_result ( sto p )
-    | _ -> raise (Failure "Not a pointer")
-    )
-  | Avar2pnt v -> Pointer (env v)
+	| Apair2num p1 -> raise (Failure "Not implemented")
 	| AvarArray (arrayName , indexExp) -> 
 		(
 			match a_sem indexExp env sto with
@@ -75,12 +67,23 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 					)
 				|	_ -> raise (Failure "Invalid array index expression")
 		)
+	| Apnt2val v -> (match sto (env v) with
+    		| ( Pointer p , t ) -> sto_to_result ( sto p )
+    		| _ -> raise (Failure "Not a pointer")
+    	)
+	| Avar2pnt v -> Pointer (env v)
 	| Aarr2pnt v -> 
 		(
 			match sto_to_result (sto (env v)) with 
 				| Array ( p , n ) -> Pointer p
 				| _ -> raise ( Failure ("This is not an array"))
 		)
+
+	
+(*	| Avar2pnt v -> Int (env v)   
+	| Acouple (a1,a2) -> Couple (a_sem a1 env sto,a_sem a2 env sto)
+	| Aproj1 Acouple (a1, a2) -> a_sem a1 env sto
+	| Aproj2 Acouple (a1, a2) -> a_sem a2 env sto *)
 	| _ -> raise (Failure "Invalid a-exp")
 ;;
 

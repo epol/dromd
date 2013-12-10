@@ -37,15 +37,15 @@ type a_exp =
 	(* couples *)
 	| Apair2num of pair_exp
 	(* array *)
-  |	AvarArray of vname * a_exp
+    | AvarArray of vname * a_exp
 	(* pointers *)
-  | Apnt2val of vname
-  |	Avar2pnt of vname
-  | Aarr2pnt of vname
-  (* lists *)
-  | Alistof of vname*a_exp
+	| Apnt2val of vname
+    | Avar2pnt of vname
+    | Aarr2pnt of vname
+    (* lists *)
+    | AvarList of vname*a_exp
 and b_exp =
-  | Bvar of vname
+    | Bvar of vname
 	| Btrue
 	| Bfalse
 	| Bequal of a_exp * a_exp
