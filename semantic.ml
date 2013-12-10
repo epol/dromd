@@ -33,8 +33,10 @@ type result =
 	| Pair of result*result 
 	| Func of stm * vname * environment 
 	| Array of loc * int 
-	| List of result * loc
+	| List of loc
+	| Node of result * loc
 ;;
+
 type storage = loc -> result * tag ;;
 
 
@@ -123,8 +125,39 @@ let rec pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
 (* questa è una riga di commento *)
 (* lists semantic *)
 
+let update_storage (sto:storage) (n:loc) (new_value:result) =
+	function 
+		| n -> new_value
+		| x -> sto x
+;;
+
+let rec list_concat (ptr1:loc) (ptr2:loc) (sto:storage) = 
+	match ptr1 with
+		| 0 -> ptr2;
+		| node_ptr ->
+			(match sto node_ptr with
+				| (Node (r, next_node), Var) ->
+					let next_concat=list_concat next_node ptr2 sto in
+						update_storage sto node_ptr (Node(r,next_concat), Var)
+				| _ -> raise (Failure "List does not point to a node.")
+			)
+
 let rec list_sem (l:b_exp) (env:environment) (sto:storage) = match l with
-	| 
+	| Lvar v ->
+		(match sto (env v) with
+			| List l -> List l
+			| _ -> raise (Failure "Variable in list_exp is not a list.")
+		)
+	| Lempty -> List 0
+	| Lconcat (lexp1, lexp2) ->
+		(
+			match (list_sem lexp1 env sto , list_sem lexp2 env sto ) with
+		let list1=list_sem lexp1 env sto and list2=list_sem lexp2 env sto in
+			(match (list1, list2) with
+				| (List list_ptr1, List list_ptr2) ->
+					List list_concat list_ptr1 list_ptr2 sto
+			)
+	| _ -> raise (Failure "Funzione per liste non ancora implementata.")
 ;;
 
 let rec b_sem (b:b_exp) (env:environment) (sto:storage) = match b with
@@ -313,6 +346,24 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 					)
 				| Const -> raise (Failure "You can't modify a const")
 		)
+		| SletList (t, listName, listInitialValueExp) ->
+				(
+					let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
+						(fun (v1:vname) ->
+							if v1 = v then
+								insertPosition
+							else
+								env(v1)
+						),
+						(fun (n:loc) ->
+							if n = insertPosition then
+								(list_sem listInitialValueExp env sto, t)
+							else if n = -1 then
+								(Int (insertPosition + 1)  , Var)
+							else
+								sto (n)
+						)
+				)
 (*	| _ -> raise (Failure "Semantic not implemented yet")   *)
 ;;
 
