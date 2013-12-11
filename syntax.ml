@@ -40,12 +40,12 @@ type a_exp =
     | AvarArray of vname * a_exp
 	(* pointers *)
 	| Apnt2val of vname
-    | Avar2pnt of vname
-    | Aarr2pnt of vname
-    (* lists *)
-    | AvarList of vname*a_exp
+	| Avar2pnt of vname
+	| Aarr2pnt of vname
+	(* lists *)
+	| AvarList of vname*a_exp
 and b_exp =
-    | Bvar of vname
+	| Bvar of vname
 	| Btrue
 	| Bfalse
 	| Bequal of a_exp * a_exp
@@ -58,7 +58,7 @@ and list_exp =
 	| Lconcat of list_exp * list_exp
 	| Lpushback of list_exp * a_exp
 and pair_exp =
-    | Pvar of vname
+	| Pvar of vname
 	| Pnumnum of a_exp * a_exp
 	| Ppairnum of pair_exp * a_exp
 	| Pnumpair of  a_exp * pair_exp

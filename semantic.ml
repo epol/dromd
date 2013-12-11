@@ -25,19 +25,27 @@
 #use "syntax.ml"
 
 type loc = int;; (* indirizzi di memoria *)
-type environment = vname -> loc;;
-type result = 
-	| Int of int 
-	| Pointer of loc 
-	| Bool of bool 
-	| Pair of result*result 
-	| Func of stm * vname * environment 
-	| Array of loc * int 
-	| List of loc
-	| Node of result * loc
+
+type storable =
+	| SInt of int
+	| SPointer of loc
+	| SPair of storable * storable
+	| SFunc of stm * vname * environment
+and denotabili = 
+	| DInt of int
+	| DPointer of loc
+	| DPair of storable * storable
+	| DFunc of stm * vname * environment
+	| Address of loc
+	| List of llist
+and llist =
+	| Empty
+	| LList of denotabili * llist
+and environment = vname -> denotabili
 ;;
 
-type storage = loc -> result * tag ;;
+type storage = loc -> storable
+;;
 
 
 let to_int (r:result) = match r with
