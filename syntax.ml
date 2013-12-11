@@ -55,7 +55,6 @@ and list_exp =
 	| Lempty
 	| LpushFront of a_exp * list_exp
 	| Lvar of vname
-	| Lempty
 and pair_exp =
 	| Pvar of vname
 	| Pnumnum of a_exp * a_exp
@@ -67,16 +66,12 @@ and pair_exp =
 and fun_exp =
 	| Fvar of vname
 	| Finit of vname * stm										(* f(v1) = stm																								*)
-;;
-
-type exp = 
+and exp = 
 	| Aexp of a_exp
 	| Bexp of b_exp
 	| Lexp of list_exp
 	| Pexp of pair_exp
-;;
-
-type stm =
+and stm =
 	| Sskip																		(* skip																												*)
 	| Ssequence of stm * stm									(* s1 ; s2																										*)
 	| Sassign of vname * exp									(* v1 := e1																										*)

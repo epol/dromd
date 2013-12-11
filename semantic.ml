@@ -31,66 +31,94 @@ type storable =
 	| SPointer of loc
 	| SPair of storable * storable
 	| SFunc of stm * vname * environment
-and denotabili = 
+and denotabile = 
 	| DInt of int
 	| DPointer of loc
 	| DPair of storable * storable
 	| DFunc of stm * vname * environment
 	| Address of loc
 	| List of llist
+	| Array of int * loc
 and llist =
 	| Empty
-	| LList of denotabili * llist
-and environment = vname -> denotabili
+	| LList of int * llist
+and expressible =
+	| EInt of int
+	| EBool of bool
+and environment = vname -> denotabile
 ;;
 
 type storage = loc -> storable
 ;;
 
 
-let to_int (r:result) = match r with
-	| Int i -> i
-	| Pointer p -> p
+let storable_to_int (s:storable) = match s with
+	| SInt i -> i
+	| SPointer p -> p
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
-let to_bool (r:result) = match r with
-  | Bool b -> b
-  | _ -> raise (Failure "Wrong data type in conversion")
+let denotabile_to_int (d:denotabile) = match d with
+	| DInt i -> i 
+	| DPointer p -> p
+	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
-let sto_to_result ((r:result) , (t:tag)) = r ;;
-let sto_to_tag ((r:result), (t:tag)) = t ;;
+let expressibile_to_int (e:expressible) = match e with
+	| EInt i -> i
+	| _ -> raise (Failure "Wrong data type in conversion")
 
 let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
-	| Avar v -> sto_to_result (sto (env v) )
-	| Anum n -> Int n
-	| Aplus (a1,a2) -> Int (to_int (a_sem a1 env sto) + to_int (a_sem a2 env sto))
-	| Aminus (a1,a2)-> Int (to_int (a_sem a1 env sto) - to_int (a_sem a2 env sto))
-	| Aneg a1 -> Int (- to_int (a_sem a1 env sto))
-	| Aprod (a1,a2)-> Int (to_int (a_sem a1 env sto) * to_int (a_sem a2 env sto))
-	| Adiv (a1,a2)-> Int (to_int (a_sem a1 env sto) / to_int (a_sem a2 env sto))
+	| Avar v ->
+		(
+			match env v with 
+				| DInt i -> EInt i
+				| DPointer p -> EInt p
+				| Address l -> 
+					(
+						match sto l with 
+							| SInt i -> EInt i
+							| SPointer p -> EInt p
+							| _ -> raise (Failure "Not int variable in a arithmetic expression")
+					)
+				| _ -> raise (Failure "Not int constant in a arithmetic expression")
+		)
+	| Anum n -> EInt n
+	| Aplus ( a1,a2) -> EInt (expressibile_to_int ( a_sem a1 env sto ) + expressibile_to_int ( a_sem a2 env sto ))
+	| Aminus ( a1,a2) -> EInt (expressibile_to_int ( a_sem a1 env sto ) - expressibile_to_int ( a_sem a2 env sto ))
+	| Aneg a1 -> EInt ( - expressibile_to_int ( a_sem a1 env sto ))
+	| Aprod ( a1,a2) -> EInt (expressibile_to_int ( a_sem a1 env sto ) * expressibile_to_int ( a_sem a2 env sto ))
+	| Adiv ( a1,a2) -> EInt (expressibile_to_int ( a_sem a1 env sto ) / expressibile_to_int ( a_sem a2 env sto ))
 	| Apair2num p1 -> 
 		(
 			match pair_sem p1 env sto with
-				| Int n -> Int n
-				| Pointer p -> Pointer p
+				| EInt n -> EInt n
 				| _ -> raise (Failure "I can't do arithmetic with pairs!")
 		)
+
 	| AvarArray (arrayName , indexExp) -> 
 		(
 			match a_sem indexExp env sto with
-				|	Int index ->
-					( match sto_to_result (sto (env arrayName ))  with
-							|	Array ( firstElement , arrayLength) ->
+				|	EInt index ->
+					( match env arrayName with
+							|	Array ( arrayLength , arrayLocation ) ->
 								if index < arrayLength then
-									sto_to_result (sto (firstElement + index) )
+									(
+										match sto ( arrayLocation + index) with
+											| SInt i -> EInt i
+											| SPointer p -> EInt p
+											| _ -> raise (Failure "Error in seeking array (or not implemented yet)")
+									)
 								else 
 									raise (Failure "Segmentation Fault!")
 							| _ -> raise (Failure "Is that an array?")
 					)
 				|	_ -> raise (Failure "Invalid array index expression")
 		)
+
+
+(* TODO: finish the a_exp semantic			
+
 	| Apnt2val v -> (match sto (env v) with
     		| ( Pointer p , t ) -> sto_to_result ( sto p )
     		| _ -> raise (Failure "Not a pointer")
@@ -101,7 +129,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 			match sto_to_result (sto (env v)) with 
 				| Array ( p , n ) -> Pointer p
 				| _ -> raise ( Failure ("This is not an array"))
-		)
+		) *)
 	| _ -> raise (Failure "Invalid a-exp")
 
 and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
