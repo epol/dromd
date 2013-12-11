@@ -24,7 +24,6 @@
  (* sintassi *)
 
 type vname = string
-type tag = Var | Const ;;
 
 type a_exp = 
 	| Avar of vname
@@ -37,7 +36,7 @@ type a_exp =
 	(* couples *)
 	| Apair2num of pair_exp
 	(* array *)
-    | AvarArray of vname * a_exp
+	| AvarArray of vname * a_exp
 	(* pointers *)
 	| Apnt2val of vname
 	| Avar2pnt of vname
@@ -53,10 +52,10 @@ and b_exp =
 	| Bnot of b_exp
 	| Band of b_exp * b_exp
 and list_exp =
+	| Lempty
+	| LpushFront of a_exp * list_exp
 	| Lvar of vname
 	| Lempty
-	| Lconcat of list_exp * list_exp
-	| Lpushback of list_exp * a_exp
 and pair_exp =
 	| Pvar of vname
 	| Pnumnum of a_exp * a_exp
@@ -65,23 +64,29 @@ and pair_exp =
 	| Ppairpair of pair_exp * pair_exp
 	| Pproj1 of pair_exp
 	| Pproj2 of pair_exp
+and fun_exp =
+	| Fvar of vname
+	| Finit of vname * stm										(* f(v1) = stm																								*)
+;;
+
+type exp = 
+	| Aexp of a_exp
+	| Bexp of b_exp
+	| Lexp of list_exp
+	| Pexp of pair_exp
 ;;
 
 type stm =
-	| Sassign of vname * a_exp								(* v1 := a1																										*)
 	| Sskip																		(* skip																												*)
-	| Slet of tag * vname * a_exp							(* tag v1 := a1																								*)
-	| Sfun of vname * vname * stm							(* fun f (t) := s1																						*)
 	| Ssequence of stm * stm									(* s1 ; s2																										*)
+	| Sassign of vname * exp									(* v1 := e1																										*)
+	| Slet of vname * exp											(* const v1 := e1																							*)
+	| Svar of vname * exp											(* var v1 := e1																								*)
 	| Sifthenelse of b_exp * stm * stm				(* if b then s1 else s2																				*)
 	| Swhile of b_exp * stm										(* while (b1) do s1 																					*)
 	| Sblock of stm														(* begin s1 end																								*)
-	| Scall of vname * a_exp									(* f ( a1)																										*)
-	| Sprint of a_exp													(* print (a1)																									*)
-	|	SletArray of tag *vname * a_exp * a_exp	(* tag arrayName [arrayLengthExp] := arrayInitialValueExp			*)
+	| Scall of vname * exp										(* f ( e1)																										*)
+	| Sprint of exp														(* print (a1)																									*)
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 														*)
 	| SassignPnt of vname * a_exp 						(* *v1 := a1																									*)
-	(* lists *)
-	|	SletList of tag * vname * list_exp    	(* tag arrayName [arrayLengthExp] := arrayInitialValueExp			*)
-	| SassignList of vname * list_exp					(* list1 := list3																								*)
 ;;
