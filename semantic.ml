@@ -71,6 +71,10 @@ let expressibile_to_int (e:expressible) = match e with
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
+let expressibile_to_bool (e:expressible) = match e with
+	| EBool b -> b
+	| _ -> raise (Failure "Wrong data type in conversion")
+
 let rec access_list_n (l1:llist) (n:int) = match l1 with
 	| Empty -> raise (Failure "The list isn't so long")
 	| LList ( e , l2 ) -> if n=0 then e else (access_list_n l2 (n - 1) )
@@ -196,14 +200,13 @@ and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
 		)
 ;;
 
-(* questa è una riga di commento *)
-(* lists semantic *)
-
-let update_storage (sto:storage) (n:loc) (new_value:result) x =
-	if x=n then
-		new_value , Var
-	else
-		sto x
+let rec b_sem (s:b_exp) (env:environment) (sto:storage) = match s with
+	| Btrue -> EBool true
+	| Bfalse -> EBool false
+	| Bequal (a1,a2) -> EBool (expressibile_to_int (a_sem a1 env sto) = expressibile_to_int (a_sem a2 env sto))
+	| Bleq (a1,a2) -> EBool (expressibile_to_int (a_sem a1 env sto) <= expressibile_to_int (a_sem a2 env sto))
+	| Bnot b1 -> EBool ( not ( expressibile_to_bool (b_sem b1 env sto)))
+	| Band (b1, b2) -> EBool ( (expressibile_to_bool (b_sem b1 env sto)) && (expressibile_to_bool (b_sem b2 env sto)))
 ;;
 
 let rec list_concat (ptr1:loc) (ptr2:loc) (sto:storage) = 

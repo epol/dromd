@@ -44,7 +44,6 @@ type a_exp =
 	(* lists *)
 	| AvarList of vname*a_exp
 and b_exp =
-	| Bvar of vname
 	| Btrue
 	| Bfalse
 	| Bequal of a_exp * a_exp
