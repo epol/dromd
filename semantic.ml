@@ -34,7 +34,7 @@ type storable =
 and denotabile = 
 	| DInt of int
 	| DPointer of loc
-	| DPair of storable * storable
+	| DPair of denotabile * denotabile
 	| DFunc of stm * vname * environment
 	| Address of loc
 	| List of llist
@@ -45,6 +45,7 @@ and llist =
 and expressible =
 	| EInt of int
 	| EBool of bool
+	| EPair of expressible * expressible
 and environment = vname -> denotabile
 ;;
 
@@ -73,6 +74,18 @@ let rec access_list_n (l1:llist) (n:int) = match l1 with
 	| Empty -> raise (Failure "The list isn't so long")
 	| LList ( e , l2 ) -> if n=0 then e else (access_list_n l2 (n - 1) )
 ;;
+
+let rec denotabile_to_expressible (d:denotabile) = match d with
+	| DInt n -> EInt n
+	| DPointer p -> EInt p
+	| DPair p1, p2 -> EPair ( denotabile_to_expressibile p1 ) , ( denotabile_to_expressibile p2 )
+	| DFunc s,t,e -> EFunc s,t,e
+	| List l -> raise (Failure "bug in implementation")
+	| Address l -> raise (Failure "bug in implementation")
+	| Array n,l -> raise (Failure "bug in implementation or not implemented yet")
+	| _ -> raise (Failue "fava")
+
+
 
 let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Avar v ->
@@ -154,7 +167,11 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| _ -> raise (Failure "Invalid a-exp")
 
 and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
-	| Pvar v -> sto_to_result (sto (env v))
+	| Pvar v ->
+		(
+			match env v with
+				| DPair 
+				| Address s
 	| Pnumnum (a1, a2) -> Pair ( a_sem a1 env sto, a_sem a2 env sto)
 	| Ppairnum (p1 , a1) -> Pair ( pair_sem p1 env sto, a_sem a1 env sto)
 	| Pnumpair (a1 , p1) -> Pair ( a_sem a1 env sto, pair_sem p1 env sto)
