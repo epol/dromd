@@ -67,6 +67,12 @@ let denotabile_to_int (d:denotabile) = match d with
 let expressibile_to_int (e:expressible) = match e with
 	| EInt i -> i
 	| _ -> raise (Failure "Wrong data type in conversion")
+;;
+
+let rec access_list_n (l1:llist) (n:int) = match l1 with
+	| Empty -> raise (Failure "The list isn't so long")
+	| LList ( e , l2 ) -> if n=0 then e else (access_list_n l2 (n - 1) )
+;;
 
 let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Avar v ->
@@ -115,21 +121,36 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 					)
 				|	_ -> raise (Failure "Invalid array index expression")
 		)
-
-
-(* TODO: finish the a_exp semantic			
-
-	| Apnt2val v -> (match sto (env v) with
-    		| ( Pointer p , t ) -> sto_to_result ( sto p )
-    		| _ -> raise (Failure "Not a pointer")
-    	)
-	| Avar2pnt v -> Pointer (env v)
-	| Aarr2pnt v -> 
+	| Apnt2val a ->
 		(
-			match sto_to_result (sto (env v)) with 
-				| Array ( p , n ) -> Pointer p
-				| _ -> raise ( Failure ("This is not an array"))
-		) *)
+			match  a_sem a env sto with
+				| EInt p ->
+					(
+						match sto p with
+							| SInt n -> EInt n
+							| SPointer p -> EInt p
+							| _ -> raise (Failure "Not int variable pointed in a arithmetic expression")
+					)
+				| _ -> raise (Failure "Not a valid pointer")
+		)
+	| Avar2pnt v ->
+		(
+			match env v with
+				| Address l -> EInt l
+				| _ -> raise (Failure "Unable to point to a const value")
+		)
+	| Aarr2pnt v ->
+		(
+			match env v with
+				| Array ( arrayLength, arrayLocation ) -> EInt arrayLocation
+				| _ -> raise (Failure "This is not an array")
+		)
+	| AvarList ( v, a) -> 
+		(
+			match (env v , a_sem a env sto ) with
+				| List l , EInt n -> EInt ( access_list_n l n )
+				| _ -> raise (Failure "Illegal access to a list")
+		)
 	| _ -> raise (Failure "Invalid a-exp")
 
 and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with

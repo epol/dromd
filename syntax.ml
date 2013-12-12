@@ -38,7 +38,7 @@ type a_exp =
 	(* array *)
 	| AvarArray of vname * a_exp
 	(* pointers *)
-	| Apnt2val of vname
+	| Apnt2val of a_exp
 	| Avar2pnt of vname
 	| Aarr2pnt of vname
 	(* lists *)
