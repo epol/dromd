@@ -46,6 +46,7 @@ and expressible =
 	| EInt of int
 	| EBool of bool
 	| EPair of expressible * expressible
+	| EFunc of stm * vname * environment
 and environment = vname -> denotabile
 ;;
 
@@ -78,14 +79,17 @@ let rec access_list_n (l1:llist) (n:int) = match l1 with
 let rec denotabile_to_expressible (d:denotabile) = match d with
 	| DInt n -> EInt n
 	| DPointer p -> EInt p
-	| DPair p1, p2 -> EPair ( denotabile_to_expressibile p1 ) , ( denotabile_to_expressibile p2 )
-	| DFunc s,t,e -> EFunc s,t,e
+	| DPair (p1, p2) -> EPair ( denotabile_to_expressible p1 , denotabile_to_expressible p2 )
+	| DFunc (s,t,e) -> EFunc (s,t,e)
 	| List l -> raise (Failure "bug in implementation")
 	| Address l -> raise (Failure "bug in implementation")
-	| Array n,l -> raise (Failure "bug in implementation or not implemented yet")
-	| _ -> raise (Failue "fava")
+	| Array (n,l) -> raise (Failure "bug in implementation or not implemented yet")
 
-
+let rec storable_to_expressible (s:storable) = match s with
+	| SInt n -> EInt n
+	| SPointer p -> EInt p
+	| SPair (p1, p2) -> EPair ( storable_to_expressible p1 , storable_to_expressible p2)
+	| SFunc (s,t,e) -> EFunc (s,t,e)
 
 let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Avar v ->
@@ -164,28 +168,30 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 				| List l , EInt n -> EInt ( access_list_n l n )
 				| _ -> raise (Failure "Illegal access to a list")
 		)
-	| _ -> raise (Failure "Invalid a-exp")
+(*	| _ -> raise (Failure "Invalid a-exp") *)
 
 and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
 	| Pvar v ->
 		(
 			match env v with
-				| DPair 
-				| Address s
-	| Pnumnum (a1, a2) -> Pair ( a_sem a1 env sto, a_sem a2 env sto)
-	| Ppairnum (p1 , a1) -> Pair ( pair_sem p1 env sto, a_sem a1 env sto)
-	| Pnumpair (a1 , p1) -> Pair ( a_sem a1 env sto, pair_sem p1 env sto)
-	| Ppairpair (p1 , p2) -> Pair ( pair_sem p1 env sto, pair_sem p2 env sto)
+				| DPair (d1, d2) -> denotabile_to_expressible (DPair (d1,d2)) 
+				| Address l -> storable_to_expressible (sto l)
+				| _ -> raise (Failure "Pvar must be applied to a pair")
+		)
+	| Pnumnum (a1, a2) -> EPair ( a_sem a1 env sto, a_sem a2 env sto)
+	| Ppairnum (p1 , a1) -> EPair ( pair_sem p1 env sto, a_sem a1 env sto)
+	| Pnumpair (a1 , p1) -> EPair ( a_sem a1 env sto, pair_sem p1 env sto)
+	| Ppairpair (p1 , p2) -> EPair ( pair_sem p1 env sto, pair_sem p2 env sto)
 	| Pproj1 p1 -> 
 		(
 			match pair_sem p1 env sto with
-				| Pair (r1, r2) -> r1
+				| EPair (r1, r2) -> r1
 				| _ -> raise (Failure "I can only project a couple!")
 		)
 	| Pproj2 p1 -> 
 		(
 			match pair_sem p1 env sto with
-				| Pair (r1, r2) -> r2
+				| EPair (r1, r2) -> r2
 				| _ -> raise (Failure "I can only project a couple!")
 		)
 ;;
