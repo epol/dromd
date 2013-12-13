@@ -46,14 +46,14 @@ and expressible =
 	| EBool of bool
 	| EPair of expressible * expressible
 	| EFunc of stm * vname * environment
-	| EList of int_list;
+	| EList of int_list
 and environment = vname -> denotabile
 ;;
 
 type storage = int * (loc -> storable)
 ;;
 
-let apply_storage sto:storage l:loc = (snd sto) l
+let apply_storage (sto:storage) (l:loc) = (snd sto) l
 ;;
 
 let update_storage (sto:storage) (l:loc) (d:storable) = 
@@ -61,7 +61,7 @@ let update_storage (sto:storage) (l:loc) (d:storable) =
 	(fst sto, updated_memory)
 ;;
 
-let bind (env:environment) (v:vname) (d:denotable) = 
+let bind (env:environment) (v:vname) (d:denotabile) = 
 	let new_env v1 = if (v1=v) then d else env v1 in
 	new_env
 ;;
@@ -78,20 +78,24 @@ let denotabile_to_int (d:denotabile) = match d with
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
-let expressibile_to_int (e:expressible) = match e with
+let expressible_to_int (e:expressible) = match e with
 	| EInt i -> i
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
-let expressibile_to_bool (e:expressible) = match e with
+let expressible_to_bool (e:expressible) = match e with
 	| EBool b -> b
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
-let expressibile_to_function (e:expressible) = match e with
-	| EFunction (s,v,en) -> (s,v,en)
+let expressible_to_function (e:expressible) = match e with
+	| EFunc (s,v,en) -> (s,v,en)
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
+
+let expressible_to_list (e:expressible) = match e with 
+	| EList l -> l
+	| _ -> raise (Failure "Wrong data type in conversion")
 
 let rec access_list_n (l1:int_list) (n:int) = match l1 with
 	| Empty -> raise (Failure "The list isn't so long")
@@ -104,7 +108,7 @@ let rec denotabile_to_expressible (d:denotabile) = match d with
 	| DPair (p1, p2) -> EPair ( denotabile_to_expressible p1 , denotabile_to_expressible p2 )
 	| DFunc (s,t,e) -> EFunc (s,t,e)
 	| DList l -> raise (Failure "bug in implementation")
-	| DAddress l -> raise (Failure "bug in implementation")
+	| L l -> raise (Failure "bug in implementation")
 	| DArray (n,l) -> raise (Failure "bug in implementation or not implemented yet")
 
 let rec storable_to_expressible (s:storable) = match s with
@@ -117,13 +121,13 @@ let rec storable_to_expressible (s:storable) = match s with
 let get_var_value (v:vname) (env:environment) (sto:storage) =
 	match (env v) with
 		| L l -> storable_to_expressible (apply_storage sto l)
-		| d -> denotabile_to_expressible(e)
+		| d -> denotabile_to_expressible(d)
 ;;
 
 (* funzioni semantica *)
 
 let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
-	| Avar v -> expressible_to_int (get_var_value v env sto)
+	| Avar v -> get_var_value v env sto
 		(*(
 			match env v with 
 				| DInt i -> EInt i
@@ -138,11 +142,11 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 				| _ -> raise (Failure "Not int constant in a arithmetic expression")
 		)*)
 	| Anum n -> EInt n
-	| Aplus ( a1,a2) -> EInt (expressibile_to_int ( a_sem a1 env sto ) + expressibile_to_int ( a_sem a2 env sto ))
-	| Aminus ( a1,a2) -> EInt (expressibile_to_int ( a_sem a1 env sto ) - expressibile_to_int ( a_sem a2 env sto ))
-	| Aneg a1 -> EInt ( - expressibile_to_int ( a_sem a1 env sto ))
-	| Aprod ( a1,a2) -> EInt (expressibile_to_int ( a_sem a1 env sto ) * expressibile_to_int ( a_sem a2 env sto ))
-	| Adiv ( a1,a2) -> EInt (expressibile_to_int ( a_sem a1 env sto ) / expressibile_to_int ( a_sem a2 env sto ))
+	| Aplus ( a1,a2) -> EInt (expressible_to_int ( a_sem a1 env sto ) + expressible_to_int ( a_sem a2 env sto ))
+	| Aminus ( a1,a2) -> EInt (expressible_to_int ( a_sem a1 env sto ) - expressible_to_int ( a_sem a2 env sto ))
+	| Aneg a1 -> EInt ( - expressible_to_int ( a_sem a1 env sto ))
+	| Aprod ( a1,a2) -> EInt (expressible_to_int ( a_sem a1 env sto ) * expressible_to_int ( a_sem a2 env sto ))
+	| Adiv ( a1,a2) -> EInt (expressible_to_int ( a_sem a1 env sto ) / expressible_to_int ( a_sem a2 env sto ))
 	| Apair2num p1 -> 
 		(
 			match pair_sem p1 env sto with
@@ -155,10 +159,10 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 			match a_sem indexExp env sto with
 				|	EInt index ->
 					( match env arrayName with
-							|	Array ( arrayLength , arrayLocation ) ->
+							|	DArray ( arrayLength , arrayLocation ) ->
 								if index < arrayLength then
 									(
-										match sto ( arrayLocation + index) with
+										match (snd sto) ( arrayLocation + index) with
 											| SInt i -> EInt i
 											| SPointer p -> EInt p
 											| _ -> raise (Failure "Error in seeking array (or not implemented yet)")
@@ -174,7 +178,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 			match  a_sem a env sto with
 				| EInt p ->
 					(
-						match sto p with
+						match (snd sto) p with
 							| SInt n -> EInt n
 							| SPointer p -> EInt p
 							| _ -> raise (Failure "Not int variable pointed in a arithmetic expression")
@@ -184,19 +188,19 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Avar2pnt v ->
 		(
 			match env v with
-				| Address l -> EInt l
+				| L l -> EInt l
 				| _ -> raise (Failure "Unable to point to a const value")
 		)
 	| Aarr2pnt v ->
 		(
 			match env v with
-				| Array ( arrayLength, arrayLocation ) -> EInt arrayLocation
+				| DArray ( arrayLength, arrayLocation ) -> EInt arrayLocation
 				| _ -> raise (Failure "This is not an array")
 		)
 	| AvarList ( v, a) -> 
 		(
 			match (env v , a_sem a env sto ) with
-				| List l , EInt n -> EInt ( access_list_n l n )
+				| DList l , EInt n -> EInt ( access_list_n l n )
 				| _ -> raise (Failure "Illegal access to a list")
 		)
 (*	| _ -> raise (Failure "Invalid a-exp") *)
@@ -206,7 +210,7 @@ and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
 		(
 			match env v with
 				| DPair (d1, d2) -> denotabile_to_expressible (DPair (d1,d2)) 
-				| Address l -> storable_to_expressible (sto l)
+				| L l -> storable_to_expressible ((snd sto) l)
 				| _ -> raise (Failure "Pvar must be applied to a pair")
 		)
 	| Pnumnum (a1, a2) -> EPair ( a_sem a1 env sto, a_sem a2 env sto)
@@ -230,49 +234,44 @@ and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
 let rec b_sem (s:b_exp) (env:environment) (sto:storage) = match s with
 	| Btrue -> EBool true
 	| Bfalse -> EBool false
-	| Bequal (a1,a2) -> EBool (expressibile_to_int (a_sem a1 env sto) = expressibile_to_int (a_sem a2 env sto))
-	| Bleq (a1,a2) -> EBool (expressibile_to_int (a_sem a1 env sto) <= expressibile_to_int (a_sem a2 env sto))
-	| Bnot b1 -> EBool ( not ( expressibile_to_bool (b_sem b1 env sto)))
-	| Band (b1, b2) -> EBool ( (expressibile_to_bool (b_sem b1 env sto)) && (expressibile_to_bool (b_sem b2 env sto)))
+	| Bequal (a1,a2) -> EBool (expressible_to_int (a_sem a1 env sto) = expressible_to_int (a_sem a2 env sto))
+	| Bleq (a1,a2) -> EBool (expressible_to_int (a_sem a1 env sto) <= expressible_to_int (a_sem a2 env sto))
+	| Bnot b1 -> EBool ( not ( expressible_to_bool (b_sem b1 env sto)))
+	| Band (b1, b2) -> EBool ( (expressible_to_bool (b_sem b1 env sto)) && (expressible_to_bool (b_sem b2 env sto)))
 ;;
+
+
 
 let rec list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
 	| Lvar v ->
 		(match env v with
-			| List l -> EList l
+			| DList l -> EList l
 			| _ -> raise (Failure "Non list variable in list expression.")
 		)
 	| LpushFront (ae, le) ->
-		let a=a_sem ae env sto in
-		let l=list_sem ae env sto in
-		EList Conc (expressibile_to_int a) l
+			let a=a_sem ae env sto in
+				let l=list_sem le env sto in
+					EList (Conc ((expressible_to_int a), (expressible_to_list l)))
 	| Lempty -> EList Empty
 ;;
 
-let rec b_sem (b:b_exp) (env:environment) (sto:storage) = match b with
-  | Bvar v -> sto_to_result (sto (env v))
-  | Btrue -> EBool true
-  | Bfalse -> EBool false
-  | Bequal (a1,a2) -> EBool (to_int(a_sem a1 env sto) = to_int(a_sem a2 env sto)) 
-  | Bleq (a1,a2) -> EBool (to_int(a_sem a1 env sto) <= to_int(a_sem a2 env sto))
-  | Bnot b1 -> EBool ( not( to_bool (b_sem b1 env sto)))
-  | Band (b1,b2) -> EBool ( (to_bool ( b_sem b1 env sto )) && (to_bool (b_sem b2 env sto)))
-  (*| _ -> raise (Failure "Invalid b-exp")*)
-;;
 
 let rec fun_sem (f:fun_exp) (env:environment) (sto:storage) =
-	| FVar v -> get_var_value vf env sto
-	| FDefine (vp, s) -> EFunc (s, vp, env)
+	match f with
+		| Fvar vf -> get_var_value vf env sto
+		| Fdefine (vp, s) -> EFunc (s, vp, env)
 ;;
 
-let exp_sem (e:exp_sem) (env:environment) (sto:storage) =
+let exp_sem (e:exp) (env:environment) (sto:storage) =
 	match e with
 		| Aexp ae -> a_sem ae env sto
 		| Bexp be -> b_sem be env sto
 		| Pexp pe -> pair_sem pe env sto
 		| Lexp le -> list_sem le env sto
+		| Fexp fe -> fun_sem fe env sto
 ;;
 
+(* TODO: rewrite the print function
 let rec print_result r = match r with
 	| Int n ->
 		Printf.printf "%d" n
@@ -292,6 +291,7 @@ let rec print_result r = match r with
 		Printf.printf "Array %d %d" address length
 	| _ -> raise (Failure "Cannot print a list or a node")
 ;;
+*)
 
 let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 	| Slet (t,v,e) -> bind env v (exp_sem e)
