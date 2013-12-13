@@ -64,12 +64,13 @@ and pair_exp =
 	| Pproj2 of pair_exp
 and fun_exp =
 	| Fvar of vname
-	| Finit of vname * stm										(* f(v1) = stm																								*)
+	| Fdefine of vname * stm										(* f(v1) = stm																								*)
 and exp = 
 	| Aexp of a_exp
 	| Bexp of b_exp
 	| Lexp of list_exp
 	| Pexp of pair_exp
+	| Fexp of fun_exp
 and stm =
 	| Sskip																		(* skip																												*)
 	| Ssequence of stm * stm									(* s1 ; s2																										*)

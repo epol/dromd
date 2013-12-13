@@ -26,6 +26,8 @@
 
 type loc = int;; (* indirizzi di memoria *)
 
+type int_list = Empty | Conc of int * int_list;;
+
 type storable =
 	| SInt of int
 	| SPointer of loc
@@ -36,23 +38,33 @@ and denotabile =
 	| DPointer of loc
 	| DPair of denotabile * denotabile
 	| DFunc of stm * vname * environment
-	| Address of loc
-	| List of llist
-	| Array of int * loc
-and llist =
-	| Empty
-	| LList of int * llist
+	| L of loc
+	| DList of int_list
+	| DArray of int * loc
 and expressible =
 	| EInt of int
 	| EBool of bool
 	| EPair of expressible * expressible
 	| EFunc of stm * vname * environment
+	| EList of int_list;
 and environment = vname -> denotabile
 ;;
 
-type storage = loc -> storable
+type storage = int * (loc -> storable)
 ;;
 
+let apply_storage sto:storage l:loc = (snd sto) l
+;;
+
+let update_storage (sto:storage) (l:loc) (d:storable) = 
+	let updated_memory l1 = if (l1=l) then d else apply_storage sto l1 in
+	(fst sto, updated_memory)
+;;
+
+let bind (env:environment) (v:vname) (d:denotable) = 
+	let new_env v1 = if (v1=v) then d else env v1 in
+	new_env
+;;
 
 let storable_to_int (s:storable) = match s with
 	| SInt i -> i
@@ -74,10 +86,16 @@ let expressibile_to_int (e:expressible) = match e with
 let expressibile_to_bool (e:expressible) = match e with
 	| EBool b -> b
 	| _ -> raise (Failure "Wrong data type in conversion")
+;;
 
-let rec access_list_n (l1:llist) (n:int) = match l1 with
+let expressibile_to_function (e:expressible) = match e with
+	| EFunction (s,v,en) -> (s,v,en)
+	| _ -> raise (Failure "Wrong data type in conversion")
+;;
+
+let rec access_list_n (l1:int_list) (n:int) = match l1 with
 	| Empty -> raise (Failure "The list isn't so long")
-	| LList ( e , l2 ) -> if n=0 then e else (access_list_n l2 (n - 1) )
+	| Conc ( e , l2 ) -> if n=0 then e else (access_list_n l2 (n - 1) )
 ;;
 
 let rec denotabile_to_expressible (d:denotabile) = match d with
@@ -85,9 +103,9 @@ let rec denotabile_to_expressible (d:denotabile) = match d with
 	| DPointer p -> EInt p
 	| DPair (p1, p2) -> EPair ( denotabile_to_expressible p1 , denotabile_to_expressible p2 )
 	| DFunc (s,t,e) -> EFunc (s,t,e)
-	| List l -> raise (Failure "bug in implementation")
-	| Address l -> raise (Failure "bug in implementation")
-	| Array (n,l) -> raise (Failure "bug in implementation or not implemented yet")
+	| DList l -> raise (Failure "bug in implementation")
+	| DAddress l -> raise (Failure "bug in implementation")
+	| DArray (n,l) -> raise (Failure "bug in implementation or not implemented yet")
 
 let rec storable_to_expressible (s:storable) = match s with
 	| SInt n -> EInt n
@@ -95,21 +113,30 @@ let rec storable_to_expressible (s:storable) = match s with
 	| SPair (p1, p2) -> EPair ( storable_to_expressible p1 , storable_to_expressible p2)
 	| SFunc (s,t,e) -> EFunc (s,t,e)
 
+
+let get_var_value (v:vname) (env:environment) (sto:storage) =
+	match (env v) with
+		| L l -> storable_to_expressible (apply_storage sto l)
+		| d -> denotabile_to_expressible(e)
+;;
+
+(* funzioni semantica *)
+
 let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
-	| Avar v ->
-		(
+	| Avar v -> expressible_to_int (get_var_value v env sto)
+		(*(
 			match env v with 
 				| DInt i -> EInt i
 				| DPointer p -> EInt p
 				| Address l -> 
 					(
-						match sto l with 
+						match applay_storage sto l with 
 							| SInt i -> EInt i
 							| SPointer p -> EInt p
 							| _ -> raise (Failure "Not int variable in a arithmetic expression")
 					)
 				| _ -> raise (Failure "Not int constant in a arithmetic expression")
-		)
+		)*)
 	| Anum n -> EInt n
 	| Aplus ( a1,a2) -> EInt (expressibile_to_int ( a_sem a1 env sto ) + expressibile_to_int ( a_sem a2 env sto ))
 	| Aminus ( a1,a2) -> EInt (expressibile_to_int ( a_sem a1 env sto ) - expressibile_to_int ( a_sem a2 env sto ))
@@ -209,42 +236,41 @@ let rec b_sem (s:b_exp) (env:environment) (sto:storage) = match s with
 	| Band (b1, b2) -> EBool ( (expressibile_to_bool (b_sem b1 env sto)) && (expressibile_to_bool (b_sem b2 env sto)))
 ;;
 
-let rec list_concat (ptr1:loc) (ptr2:loc) (sto:storage) = 
-	match ptr1 with
-		| 0 -> (sto,ptr2);
-		| node_ptr ->
-			(match sto node_ptr with
-				| (Node (r, next_node), Var) ->
-					let (new_sto , next_concat)=list_concat next_node ptr2 sto in
-						(update_storage new_sto node_ptr (Node(r,next_concat)), node_ptr)
-				| _ -> raise (Failure "List does not point to a node.")
-			)
-
 let rec list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
 	| Lvar v ->
-		(match sto (env v) with
-			| List l , Var -> List l 
-			| _ -> raise (Failure "Variable in list_exp is not a list.")
+		(match env v with
+			| List l -> EList l
+			| _ -> raise (Failure "Non list variable in list expression.")
 		)
-	| Lempty -> List 0
-(*	| Lconcat (lexp1, lexp2) ->
-		let list1=list_sem lexp1 env sto and list2=list_sem lexp2 env sto in
-			(match (list1, list2) with
-				| (List list_ptr1, List list_ptr2) ->
-					List (list_concat list_ptr1 list_ptr2 sto)
-			)*)
-	| _ -> raise (Failure "Funzione per liste non ancora implementata.")
+	| LpushFront (ae, le) ->
+		let a=a_sem ae env sto in
+		let l=list_sem ae env sto in
+		EList Conc (expressibile_to_int a) l
+	| Lempty -> EList Empty
 ;;
 
 let rec b_sem (b:b_exp) (env:environment) (sto:storage) = match b with
   | Bvar v -> sto_to_result (sto (env v))
-  | Btrue -> Bool true
-  | Bfalse -> Bool false
-  | Bequal (a1,a2) -> Bool (to_int(a_sem a1 env sto) = to_int(a_sem a2 env sto)) 
-  | Bleq (a1,a2) -> Bool (to_int(a_sem a1 env sto) <= to_int(a_sem a2 env sto))
-  | Bnot b1 -> Bool ( not( to_bool (b_sem b1 env sto)))
-  | Band (b1,b2) -> Bool ( (to_bool ( b_sem b1 env sto )) && (to_bool (b_sem b2 env sto)))
+  | Btrue -> EBool true
+  | Bfalse -> EBool false
+  | Bequal (a1,a2) -> EBool (to_int(a_sem a1 env sto) = to_int(a_sem a2 env sto)) 
+  | Bleq (a1,a2) -> EBool (to_int(a_sem a1 env sto) <= to_int(a_sem a2 env sto))
+  | Bnot b1 -> EBool ( not( to_bool (b_sem b1 env sto)))
+  | Band (b1,b2) -> EBool ( (to_bool ( b_sem b1 env sto )) && (to_bool (b_sem b2 env sto)))
   (*| _ -> raise (Failure "Invalid b-exp")*)
+;;
+
+let rec fun_sem (f:fun_exp) (env:environment) (sto:storage) =
+	| FVar v -> get_var_value vf env sto
+	| FDefine (vp, s) -> EFunc (s, vp, env)
+;;
+
+let exp_sem (e:exp_sem) (env:environment) (sto:storage) =
+	match e with
+		| Aexp ae -> a_sem ae env sto
+		| Bexp be -> b_sem be env sto
+		| Pexp pe -> pair_sem pe env sto
+		| Lexp le -> list_sem le env sto
 ;;
 
 let rec print_result r = match r with
@@ -267,59 +293,25 @@ let rec print_result r = match r with
 	| _ -> raise (Failure "Cannot print a list or a node")
 ;;
 
-let generic_assign (location:loc) (value:result) (env:environment) (sto:storage) = 
-	match sto_to_tag ( sto location ) with
-	| Var ->
-		(
-			env,
-			(fun (n:loc) ->
-				if n = location then
-					value , Var
-				else
-					sto (n)
-			)
-		)
-	|	Const -> raise (Failure "You can't modify a const")
-;;
-
 let rec sem (s:stm) (env:environment) (sto:storage) = match s with
-	| Slet (t,v,a) ->
-	  (
-	  	let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
-				(fun (v1:vname) ->
-					if v1 = v then
-						insertPosition
-					else
-						env(v1)
-				),
-				(fun (n:loc) ->
-					if n = insertPosition then
-						a_sem a env sto , t
-					else if n = -1 then
-						(Int (insertPosition + 1)  , Var)
-					else
-						sto (n)
-				)
-	  )
+	| Slet (t,v,e) -> bind env v (exp_sem e)
 	| Sskip -> (env, sto)
-	| Sassign (v,a) -> generic_assign  (env v) (a_sem a env sto) env sto
-	| SassignPnt (v,a) -> 
-		(
-			match sto (env v) with
-				| (Pointer p , t ) -> generic_assign p (a_sem a env sto) env sto
-				| _ -> raise (Failure "This is not a pointer")		
+	| Sassign (v,e) ->
+		(match (env v) with
+			| L l -> update_storage sto l (e_sem e ens sto)
+			| _ -> raise (Failure "Trying to assign a constant.")
 		)
 	| Ssequence (s1,s2) ->
 		let (env1, sto1) = sem s1 env sto in
 			sem s2 env1 sto1
 	| Sifthenelse (b,s1,s2) ->
-		let b_value = to_bool (b_sem b env sto) in
+		let b_value = expressible_to_bool (b_sem b env sto) in
 			if b_value then
 				sem s1 env sto
 			else
 				sem s2 env sto
 	| Swhile (b,s1) ->
-		let b_value = to_bool (b_sem b env sto) in
+		let b_value = expressible_to_bool (b_sem b env sto) in
 			if b_value then
 				let (env1,sto1) = sem s1 env sto in
 					sem s env1 sto1
@@ -333,29 +325,17 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 	| Sblock s1 ->
 		let (env1,sto1) = sem s1 env sto in
 			(env,sto1)
-	| Sfun (f , p , s1) ->
-		let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
-			(
-				(fun (v1:vname) ->
-					if v1 =f then 
-						insertPosition
-					else
-						env(v1)
-				),
-				(fun (n:loc) ->
-					if n = insertPosition then 
-						Func ( s1 , p, env) , Var 
-					else if n = -1 then
-							Int ( insertPosition +1 ) , Var
-						else
-							sto(n)
-				)
-			)
-	|	Scall ( f , a) -> 
-		(
-			match sto_to_result (sto (env f)) with
+	|	Scall ( vf , e) ->
+		(let (s,vp,f_env)=expressibile_to_function (get_var_value vf env sto) in
+		(*DA STRAMEGA RICONTROLLARE *)
+		let new_f_env = bind vp f_env (env vp) in
+		match  sem s new_f_env sto with
+			| (env1, sto1) -> (env, sto1)
+		)
+		(* DA ELIMINARE APPENA SIAMO CERTI CHE NON E' INUTILE
+		(match sto_to_result (sto (env f)) with
 				| Func ( s1, v , envf ) ->
-					let ( env1 , sto1 )=
+					let ( env1 , sto1 ) =
 						let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
 							( 
 								(
@@ -378,7 +358,8 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 									let (env2, sto2) = sem s1 env1 sto1 in
 										(env , sto2)
 				| _ -> raise (Failure "Call to an invalid function")
-		)
+		)*)
+	(* @ENRICO: Vedi di aggiornarle tu queste due? 
 	|	SletArray ( t , arrayName , arrayLengthExp , arrayInitialValueExp ) ->
 		(
 			match ( a_sem arrayLengthExp env sto , a_sem arrayInitialValueExp env sto ) with 
@@ -422,26 +403,8 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 							| _ -> raise (Failure "Invalid array access") 
 					)
 				| Const -> raise (Failure "You can't modify a const")
-		)
-		| SletList (t, listName, listInitialValueExp) ->
-				(
-					let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
-						(fun (v1:vname) ->
-							if v1 = listName then
-								insertPosition
-							else
-								env(v1)
-						),
-						(fun (n:loc) ->
-							if n = insertPosition then
-								(list_sem listInitialValueExp env sto, t)
-							else if n = -1 then
-								(Int (insertPosition + 1)  , Var)
-							else
-								sto (n)
-						)
-				)
-(*	| _ -> raise (Failure "Semantic not implemented yet")   *)
+		)*)
+	| _ -> raise (Failure "Semantic not implemented yet")
 ;;
 
 
