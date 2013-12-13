@@ -61,6 +61,11 @@ let update_storage (sto:storage) (l:loc) (d:storable) =
 	(fst sto, updated_memory)
 ;;
 
+let extend_storage (sto:storage) (d:storable) = 
+	let updated_memory l1 = if (l1=(fst sto)) then d else apply_storage sto l1 in
+	(fst sto +1, updated_memory)
+;;
+
 let bind (env:environment) (v:vname) (d:denotabile) = 
 	let new_env v1 = if (v1=v) then d else env v1 in
 	new_env
@@ -110,12 +115,31 @@ let rec denotabile_to_expressible (d:denotabile) = match d with
 	| DList l -> raise (Failure "bug in implementation")
 	| L l -> raise (Failure "bug in implementation")
 	| DArray (n,l) -> raise (Failure "bug in implementation or not implemented yet")
+;;
 
 let rec storable_to_expressible (s:storable) = match s with
 	| SInt n -> EInt n
 	| SPointer p -> EInt p
 	| SPair (p1, p2) -> EPair ( storable_to_expressible p1 , storable_to_expressible p2)
 	| SFunc (s,t,e) -> EFunc (s,t,e)
+;;
+
+
+let rec expressible_to_storable (e:expressible) = match e with
+	| EInt n -> SInt n
+	| EBool b -> raise (Failure "Bool is not storable")
+	| EPair (p1,p2) -> SPair ( expressible_to_storable p1, expressible_to_storable p2)
+	| EFunc (s,t,e) -> SFunc (s,t,e)
+	| EList l -> raise (Failure "List is not storable")
+;;
+
+let rec expressible_to_denotabile (e:expressible) = match e with
+	| EInt n -> DInt n
+	| EPair (p1, p2) -> DPair ( expressible_to_denotabile p1 , expressible_to_denotabile p2 )
+	| EFunc (s,t,e) -> DFunc (s,t,e)
+	| EList l -> raise (Failure "not implemented yet")
+	| EBool b -> raise (Failure "bool is not denotabile")	
+;;
 
 
 let get_var_value (v:vname) (env:environment) (sto:storage) =
@@ -294,13 +318,17 @@ let rec print_result r = match r with
 *)
 
 let rec sem (s:stm) (env:environment) (sto:storage) = match s with
-	| Slet (t,v,e) -> bind env v (exp_sem e)
+	| Slet (v,e) -> (bind env v (expressible_to_denotabile (exp_sem e env sto)),sto)
 	| Sskip -> (env, sto)
 	| Sassign (v,e) ->
+		env,
 		(match (env v) with
-			| L l -> update_storage sto l (e_sem e ens sto)
+			| L l -> update_storage sto l (expressible_to_storable(exp_sem e env sto))
 			| _ -> raise (Failure "Trying to assign a constant.")
 		)
+	| Svar (v,e) ->
+		bind env v (L (fst sto)),
+		extend_storage sto (expressible_to_storable (exp_sem e env sto))
 	| Ssequence (s1,s2) ->
 		let (env1, sto1) = sem s1 env sto in
 			sem s2 env1 sto1
@@ -317,48 +345,22 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 					sem s env1 sto1
 			else
 				(env,sto)
-	| Sprint a ->
-		let a_value=a_sem a env sto in
-			print_result a_value;
-			Printf.printf "\n";
+	| Sprint e ->
+	(*	TODO let value=exp_sem e env sto in
+			print_result a_value;   TODO *) 
+			Printf.printf "Fava\n";
 			(env, sto)
 	| Sblock s1 ->
 		let (env1,sto1) = sem s1 env sto in
 			(env,sto1)
-	|	Scall ( vf , e) ->
-		(let (s,vp,f_env)=expressibile_to_function (get_var_value vf env sto) in
-		(*DA STRAMEGA RICONTROLLARE *)
-		let new_f_env = bind vp f_env (env vp) in
-		match  sem s new_f_env sto with
-			| (env1, sto1) -> (env, sto1)
+	| Scall ( vf , e) ->
+		(
+			let (s,vp,f_env)=expressible_to_function (get_var_value vf env sto) in
+			(*DA STRAMEGA RICONTROLLARE *)
+				let new_f_env = bind f_env vp (expressible_to_denotabile (exp_sem e env sto)) in
+					match sem s new_f_env sto with
+						| (env1, sto1) -> (env, sto1)
 		)
-		(* DA ELIMINARE APPENA SIAMO CERTI CHE NON E' INUTILE
-		(match sto_to_result (sto (env f)) with
-				| Func ( s1, v , envf ) ->
-					let ( env1 , sto1 ) =
-						let insertPosition = to_int ( sto_to_result (sto (-1) )) in 
-							( 
-								(
-									fun (v1:vname) ->
-										if v1=v then
-											insertPosition
-										else
-											envf(v1)
-								), 
-								(
-									fun ( n:loc) ->
-										if n = insertPosition then
-											a_sem a env sto , Var
-										else if n = -1 then 
-												Int (insertPosition +1) , Var
-											else
-												sto(n)
-									)
-								) in
-									let (env2, sto2) = sem s1 env1 sto1 in
-										(env , sto2)
-				| _ -> raise (Failure "Call to an invalid function")
-		)*)
 	(* @ENRICO: Vedi di aggiornarle tu queste due? 
 	|	SletArray ( t , arrayName , arrayLengthExp , arrayInitialValueExp ) ->
 		(
