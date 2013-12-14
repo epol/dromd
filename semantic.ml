@@ -337,7 +337,10 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 					sem s env1 sto1
 			else
 				(env,sto)
-	| Sprint e -> print_expressible (exp_sem e env sto); (env, sto)
+	| Sprint e -> 
+			print_expressible (exp_sem e env sto);
+			Printf.printf "\n";
+			(env, sto)
 	| Sblock s1 ->
 		let (env1,sto1) = sem s1 env sto in
 			(env,sto1)

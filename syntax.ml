@@ -64,7 +64,7 @@ and pair_exp =
 	| Pproj2 of pair_exp
 and fun_exp =
 	| Fvar of vname
-	| Fdefine of vname * stm										(* f(v1) = stm																								*)
+	| Fdefine of vname * stm									(* f(v1) = stm																	*)
 and exp = 
 	| Aexp of a_exp
 	| Bexp of b_exp
@@ -72,17 +72,17 @@ and exp =
 	| Pexp of pair_exp
 	| Fexp of fun_exp
 and stm =
-	| Sskip																		(* skip																												*)
-	| Ssequence of stm * stm									(* s1 ; s2																										*)
-	| Sassign of vname * exp									(* v1 := e1																										*)
-	| Slet of vname * exp											(* const v1 := e1																							*)
-	| Svar of vname * exp											(* var v1 := e1																								*)
-	| Sifthenelse of b_exp * stm * stm				(* if b then s1 else s2																				*)
-	| Swhile of b_exp * stm										(* while (b1) do s1 																					*)
-	| Sblock of stm														(* begin s1 end																								*)
-	| Scall of vname * exp										(* f ( e1)																										*)
-	| Sprint of exp														(* print (a1)																									*)
-	| SvarArray of vname * a_exp * a_exp			(* var arrayName[arrayLength] = arrayInitValue								*)
-	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 														*)
-	| SassignPnt of a_exp * exp								(* *(a) := e																									*)
+	| Sskip																		(* skip																					*)
+	| Ssequence of stm * stm									(* s1 ; s2																			*)
+	| Sassign of vname * exp									(* v1 := e1																			*)
+	| Slet of vname * exp											(* const v1 := e1																*)
+	| Svar of vname * exp											(* var v1 := e1																	*)
+	| Sifthenelse of b_exp * stm * stm				(* if b then s1 else s2													*)
+	| Swhile of b_exp * stm										(* while (b1) do s1 														*)
+	| Sblock of stm														(* begin s1 end																	*)
+	| Scall of vname * exp										(* f ( e1)																			*)
+	| Sprint of exp														(* print (a1)																		*)
+	| SvarArray of vname * a_exp * a_exp			(* var arrayName[arrayLength] = arrayInitValue	*)
+	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 							*)
+	| SassignPnt of a_exp * exp								(* *(a) := e																		*)
 ;;
