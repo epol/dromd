@@ -30,12 +30,12 @@ type int_list = Empty | Conc of int * int_list;;
 
 type storable =
 	| SInt of int
-	| SPointer of loc
+(*| SPointer of loc*)
 	| SPair of storable * storable
 	| SFunc of stm * vname * environment
 and denotabile = 
 	| DInt of int
-	| DPointer of loc
+(*	| DPointer of loc *)
 	| DPair of denotabile * denotabile
 	| DFunc of stm * vname * environment
 	| L of loc
@@ -83,13 +83,13 @@ let bind (env:environment) (v:vname) (d:denotabile) =
 
 let storable_to_int (s:storable) = match s with
 	| SInt i -> i
-	| SPointer p -> p
+(*	| SPointer p -> p *)
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
 let denotabile_to_int (d:denotabile) = match d with
 	| DInt i -> i 
-	| DPointer p -> p
+(*	| DPointer p -> p *)
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
@@ -119,7 +119,7 @@ let rec access_list_n (l1:int_list) (n:int) = match l1 with
 
 let rec denotabile_to_expressible (d:denotabile) = match d with
 	| DInt n -> EInt n
-	| DPointer p -> EInt p
+(*	| DPointer p -> EInt p *)
 	| DPair (p1, p2) -> EPair ( denotabile_to_expressible p1 , denotabile_to_expressible p2 )
 	| DFunc (s,t,e) -> EFunc (s,t,e)
 	| DList l -> raise (Failure "bug in implementation")
@@ -129,7 +129,7 @@ let rec denotabile_to_expressible (d:denotabile) = match d with
 
 let rec storable_to_expressible (s:storable) = match s with
 	| SInt n -> EInt n
-	| SPointer p -> EInt p
+(*	| SPointer p -> EInt p *)
 	| SPair (p1, p2) -> EPair ( storable_to_expressible p1 , storable_to_expressible p2)
 	| SFunc (s,t,e) -> EFunc (s,t,e)
 ;;
@@ -198,7 +198,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 									(
 										match (snd sto) ( arrayLocation + index) with
 											| SInt i -> EInt i
-											| SPointer p -> EInt p
+										(*	| SPointer p -> EInt p *)
 											| _ -> raise (Failure "Error in seeking array (or not implemented yet)")
 									)
 								else 
@@ -214,7 +214,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 					(
 						match (snd sto) p with
 							| SInt n -> EInt n
-							| SPointer p -> EInt p
+							(*| SPointer p -> EInt p *)
 							| _ -> raise (Failure "Not int variable pointed in a arithmetic expression")
 					)
 				| _ -> raise (Failure "Not a valid pointer")
@@ -399,8 +399,15 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 					)
 				| _ -> raise (Failure "Not an array")
 		)
-
-	| _ -> raise (Failure "Semantic not implemented yet")
+	| SassignPnt (a,e) ->
+		(
+			match a_sem a env sto with
+				| EInt address ->
+					env,
+					update_storage sto address (expressible_to_storable(exp_sem e env sto))
+				| _ -> raise (Failure "Invalid pointer value")
+		)
+(*	| _ -> raise (Failure "Semantic not implemented yet") *)
 ;;
 
 

@@ -84,5 +84,5 @@ and stm =
 	| Sprint of exp														(* print (a1)																									*)
 	| SvarArray of vname * a_exp * a_exp			(* var arrayName[arrayLength] = arrayInitValue								*)
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 														*)
-	| SassignPnt of vname * exp								(* *v1 := a1																									*)
+	| SassignPnt of a_exp * exp								(* *(a) := e																									*)
 ;;
