@@ -61,9 +61,19 @@ let update_storage (sto:storage) (l:loc) (d:storable) =
 	(fst sto, updated_memory)
 ;;
 
-let extend_storage (sto:storage) (d:storable) = 
-	let updated_memory l1 = if (l1=(fst sto)) then d else apply_storage sto l1 in
+
+(*
+let extend_storage (sto:storage) (s:storable) = 
+	let updated_memory l1 = if (l1=(fst sto)) then s else apply_storage sto l1 in
 	(fst sto +1, updated_memory)
+;;*)
+
+let extend_storage (sto:storage) (s:storable) (n:int) = 
+	let updated_memory l1 =
+		if (l1>= (fst sto) &&l1 < ((fst sto) + n))
+			then s
+			else apply_storage sto l1
+	in ((fst sto + n), updated_memory)
 ;;
 
 let bind (env:environment) (v:vname) (d:denotabile) = 
@@ -328,7 +338,7 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 		)
 	| Svar (v,e) ->
 		bind env v (L (fst sto)),
-		extend_storage sto (expressible_to_storable (exp_sem e env sto))
+		extend_storage sto (expressible_to_storable (exp_sem e env sto)) 1
 	| Ssequence (s1,s2) ->
 		let (env1, sto1) = sem s1 env sto in
 			sem s2 env1 sto1
@@ -361,51 +371,35 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 					match sem s new_f_env sto with
 						| (env1, sto1) -> (env, sto1)
 		)
-	(* @ENRICO: Vedi di aggiornarle tu queste due? 
-	|	SletArray ( t , arrayName , arrayLengthExp , arrayInitialValueExp ) ->
+	| SvarArray (arrayName, lengthExp , initValueExp) ->
 		(
-			match ( a_sem arrayLengthExp env sto , a_sem arrayInitialValueExp env sto ) with 
-				|	(Int arrayLength , Int arrayInitialValue ) ->
-					let insertPosition = to_int ( sto_to_result (sto (-1) )) in
-						(
-							(fun (v:vname) ->
-								if v = arrayName then 
-									insertPosition
-								else 
-									env (v)
-							),
-							(fun (n:loc) ->
-								if n=insertPosition then Array ( insertPosition +1 , arrayLength ) , t
-								else if n> insertPosition && n <= insertPosition +arrayLength then Int arrayInitialValue , t
-								else if n = -1 then Int (insertPosition + 1 + arrayLength) , Var
-								else sto(n)
-							)
-						)
-				| _ -> raise (Failure "Invalid array initialization") 
-		)
-	| SassignArray (arrayName , indexExp, valueExp) ->
-		(
-			match sto_to_tag ( sto (env arrayName)) with
-				| Var ->	
+			match ( a_sem lengthExp env sto , a_sem initValueExp env sto ) with 
+				| (EInt length , EInt initValue ) ->
 					(
-						match (a_sem indexExp env sto , sto_to_result (sto ( env arrayName ) )) with 
-							|	(Int index , Array (firstElement ,  arrayLength ))->
-								if index < arrayLength then
+						bind env arrayName (DArray (length, (fst sto))),
+						extend_storage sto (SInt initValue) length
+					)
+				| _ -> raise (Failure "Invalid initialization of an array")
+		)
+	|	SassignArray (arrayName, indexExp, valueExp) ->
+		(
+			match env arrayName with
+				| DArray (length, firstLocation) ->
+					(
+						match a_sem indexExp env sto , a_sem valueExp env sto with
+							| EInt index , EInt value -> 
+								if index < length then
 									(
 										env,
-										(fun (n:loc) ->
-											if n = firstElement + index  then
-												a_sem valueExp env sto , Var
-											else
-												sto (n)
-										)
+										update_storage sto (firstLocation + index) (SInt value)
 									)
-								else 
+								else
 									raise (Failure "Segmentation Fault")
-							| _ -> raise (Failure "Invalid array access") 
+							| _ -> raise (Failure "Invalid array assign")
 					)
-				| Const -> raise (Failure "You can't modify a const")
-		)*)
+				| _ -> raise (Failure "Not an array")
+		)
+
 	| _ -> raise (Failure "Semantic not implemented yet")
 ;;
 
