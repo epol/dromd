@@ -162,19 +162,6 @@ let get_var_value (v:vname) (env:environment) (sto:storage) =
 
 let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Avar v -> get_var_value v env sto
-		(*(
-			match env v with 
-				| DInt i -> EInt i
-				| DPointer p -> EInt p
-				| Address l -> 
-					(
-						match applay_storage sto l with 
-							| SInt i -> EInt i
-							| SPointer p -> EInt p
-							| _ -> raise (Failure "Not int variable in a arithmetic expression")
-					)
-				| _ -> raise (Failure "Not int constant in a arithmetic expression")
-		)*)
 	| Anum n -> EInt n
 	| Aplus ( a1,a2) -> EInt (expressible_to_int ( a_sem a1 env sto ) + expressible_to_int ( a_sem a2 env sto ))
 	| Aminus ( a1,a2) -> EInt (expressible_to_int ( a_sem a1 env sto ) - expressible_to_int ( a_sem a2 env sto ))
@@ -305,27 +292,22 @@ let exp_sem (e:exp) (env:environment) (sto:storage) =
 		| Fexp fe -> fun_sem fe env sto
 ;;
 
-(* TODO: rewrite the print function
-let rec print_result r = match r with
-	| Int n ->
-		Printf.printf "%d" n
-	| Pair (e1,e2) ->
-		Printf.printf "(";
-		print_result e1;
-		Printf.printf ",";		
-		print_result e2;
-		Printf.printf ")"
-	| Bool b ->
-		Printf.printf "%b" b
-	| Pointer p ->
-		Printf.printf "%d" p
-	|	Func (s , v, e) ->
-		Printf.printf "This is a function\n"
-	| Array ( address , length ) ->
-		Printf.printf "Array %d %d" address length
-	| _ -> raise (Failure "Cannot print a list or a node")
-;;
-*)
+let rec print_expressible (e:expressible) =
+	match e with
+		| EInt n -> Printf.printf "%d" n
+		| EBool b -> Printf.printf "%b" b
+		| EPair (p1,p2) -> 
+				Printf.printf "(";
+				print_expressible p1;
+				Printf.printf ",";
+				print_expressible p2;
+				Printf.printf ")"
+		| EFunc (s,v,e) -> Printf.printf "Printing functions is not supported yet"
+		| EList Empty -> Printf.printf "Empty"
+		| EList Conc (n,l) -> 
+				Printf.printf "[%d," n;
+				print_expressible (EList l);
+				Printf.printf "]"
 
 let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 	| Slet (v,e) -> (bind env v (expressible_to_denotabile (exp_sem e env sto)),sto)
@@ -355,11 +337,7 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 					sem s env1 sto1
 			else
 				(env,sto)
-	| Sprint e ->
-	(*	TODO let value=exp_sem e env sto in
-			print_result a_value;   TODO *) 
-			Printf.printf "Fava\n";
-			(env, sto)
+	| Sprint e -> print_expressible (exp_sem e env sto); (env, sto)
 	| Sblock s1 ->
 		let (env1,sto1) = sem s1 env sto in
 			(env,sto1)
@@ -368,8 +346,8 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 			let (s,vp,f_env)=expressible_to_function (get_var_value vf env sto) in
 			(*DA STRAMEGA RICONTROLLARE *)
 				let new_f_env = bind f_env vp (expressible_to_denotabile (exp_sem e env sto)) in
-					match sem s new_f_env sto with
-						| (env1, sto1) -> (env, sto1)
+					let (env1, sto1) =  sem s new_f_env sto in
+						(env, sto1)
 		)
 	| SvarArray (arrayName, lengthExp , initValueExp) ->
 		(
@@ -409,21 +387,4 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 		)
 (*	| _ -> raise (Failure "Semantic not implemented yet") *)
 ;;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
