@@ -259,11 +259,9 @@ let rec b_sem (s:b_exp) (env:environment) (sto:storage) = match s with
 	| Bleq (a1,a2) -> EBool (expressible_to_int (a_sem a1 env sto) <= expressible_to_int (a_sem a2 env sto))
 	| Bnot b1 -> EBool ( not ( expressible_to_bool (b_sem b1 env sto)))
 	| Band (b1, b2) -> EBool ( (expressible_to_bool (b_sem b1 env sto)) && (expressible_to_bool (b_sem b2 env sto)))
-;;
+	| BisListEmpty l -> EBool ((list_sem l env sto) = EList Empty)
 
-
-
-let rec list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
+and list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
 	| Lvar v ->
 		(match env v with
 			| DList l -> EList l
@@ -274,6 +272,20 @@ let rec list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
 				let l=list_sem le env sto in
 					EList (Conc ((expressible_to_int a), (expressible_to_list l)))
 	| Lempty -> EList Empty
+	| Lhead l1 -> 
+		(
+			match list_sem l1 env sto with
+				| EList Empty -> raise (Failure "Trying to access the head of an empty list")
+				| EList Conc (n,l2) -> EInt n
+				| _ -> raise (Failure "Not a list")
+		)
+	| Ltail l1 -> 
+		(
+			match list_sem l1 env sto with
+				| EList Empty -> raise (Failure "Trying to access the tail of an empty list")
+				| EList Conc (n,l2) -> EList l2
+				| _ -> raise (Failure "Not a list")
+		)
 ;;
 
 

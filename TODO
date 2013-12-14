@@ -1,20 +1,5 @@
 Operatore di composizione fra funzioni
 
-*** Liste ***
-
-Si aggiunga ai valori esprimibili un tipo per le liste di valori esprimibili. 
-
-Si aggiungano alle espressioni: una costante che rappresenti la lista vuota,
-  un costruttore binario che dato un valore e una lista restituisce una nuova lista,
-  una funzione di accesso "head" che restituisce il primo elemento di una lista,
-  e una funzione "tail" che restituisce la sottolista che segue il primo elemento.
-
-Si aggiunga alle espressioni un costrutto di accesso ad una lista per indice:
-  data una lista l, e un indice i, che parte da uno, 
-  restituisce l'elemento i-esimo della lista.
-  Inoltre, si aggiunga un costrutto di test che serve a controllare se una lista
-  è vuota (data una lista, restituisce un booleano)
-
 Caso "map su liste"
 Si aggiunga alle espressioni l'operatore "map" che data una espressione l la cui semantica è una lista, e una espressione f la cui semantica è una funzione, restituisce una nuova lista l' della stessa lunghezza di l, ottenuta applicando f a tutti gli elementi di l. 
 

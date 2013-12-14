@@ -50,10 +50,13 @@ and b_exp =
 	| Bleq of a_exp * a_exp
 	| Bnot of b_exp
 	| Band of b_exp * b_exp
+	| BisListEmpty of list_exp
 and list_exp =
 	| Lempty
 	| LpushFront of a_exp * list_exp
 	| Lvar of vname
+	| Lhead of list_exp
+	| Ltail of list_exp
 and pair_exp =
 	| Pvar of vname
 	| Pnumnum of a_exp * a_exp
