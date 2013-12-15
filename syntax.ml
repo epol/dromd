@@ -67,7 +67,7 @@ and pair_exp =
 	| Pproj2 of pair_exp
 and fun_exp =
 	| Fvar of vname
-	| Fdefine of vname * stm									(* f(v1) = stm																	*)
+	| Fdefine of vname * stm * exp						(* execute stm with param v, return e						*)
 and exp = 
 	| Aexp of a_exp
 	| Bexp of b_exp
@@ -83,7 +83,7 @@ and stm =
 	| Sifthenelse of b_exp * stm * stm				(* if b then s1 else s2													*)
 	| Swhile of b_exp * stm										(* while (b1) do s1 														*)
 	| Sblock of stm														(* begin s1 end																	*)
-	| Scall of vname * exp										(* f ( e1)																			*)
+	| Scall of vname * vname * exp						(* x := f ( e1)																	*)
 	| Sprint of exp														(* print (a1)																		*)
 	| SvarArray of vname * a_exp * a_exp			(* var arrayName[arrayLength] = arrayInitValue	*)
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 							*)

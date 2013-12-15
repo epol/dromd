@@ -32,12 +32,12 @@ type storable =
 	| SInt of int
 (*| SPointer of loc*)
 	| SPair of storable * storable
-	| SFunc of stm * vname * environment
+	| SFunc of stm * exp * vname * environment
 and denotabile = 
 	| DInt of int
 (*	| DPointer of loc *)
 	| DPair of denotabile * denotabile
-	| DFunc of stm * vname * environment
+	| DFunc of stm * exp * vname * environment
 	| L of loc
 	| DList of int_list
 	| DArray of int * loc
@@ -45,7 +45,7 @@ and expressible =
 	| EInt of int
 	| EBool of bool
 	| EPair of expressible * expressible
-	| EFunc of stm * vname * environment
+	| EFunc of stm * exp * vname * environment
 	| EList of int_list
 and environment = vname -> denotabile
 ;;
@@ -104,7 +104,7 @@ let expressible_to_bool (e:expressible) = match e with
 ;;
 
 let expressible_to_function (e:expressible) = match e with
-	| EFunc (s,v,en) -> (s,v,en)
+	| EFunc (s,e,v,en) -> (s,e,v,en)
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
@@ -121,7 +121,7 @@ let rec denotabile_to_expressible (d:denotabile) = match d with
 	| DInt n -> EInt n
 (*	| DPointer p -> EInt p *)
 	| DPair (p1, p2) -> EPair ( denotabile_to_expressible p1 , denotabile_to_expressible p2 )
-	| DFunc (s,t,e) -> EFunc (s,t,e)
+	| DFunc (s,e,t,env) -> EFunc (s,e,t,env)
 	| DList l -> raise (Failure "bug in implementation")
 	| L l -> raise (Failure "bug in implementation")
 	| DArray (n,l) -> raise (Failure "bug in implementation or not implemented yet")
@@ -131,7 +131,7 @@ let rec storable_to_expressible (s:storable) = match s with
 	| SInt n -> EInt n
 (*	| SPointer p -> EInt p *)
 	| SPair (p1, p2) -> EPair ( storable_to_expressible p1 , storable_to_expressible p2)
-	| SFunc (s,t,e) -> EFunc (s,t,e)
+	| SFunc (s,e,t,env) -> EFunc (s,e,t,env)
 ;;
 
 
@@ -139,14 +139,14 @@ let rec expressible_to_storable (e:expressible) = match e with
 	| EInt n -> SInt n
 	| EBool b -> raise (Failure "Bool is not storable")
 	| EPair (p1,p2) -> SPair ( expressible_to_storable p1, expressible_to_storable p2)
-	| EFunc (s,t,e) -> SFunc (s,t,e)
+	| EFunc (s,e,t,env) -> SFunc (s,e,t,env)
 	| EList l -> raise (Failure "List is not storable")
 ;;
 
 let rec expressible_to_denotabile (e:expressible) = match e with
 	| EInt n -> DInt n
 	| EPair (p1, p2) -> DPair ( expressible_to_denotabile p1 , expressible_to_denotabile p2 )
-	| EFunc (s,t,e) -> DFunc (s,t,e)
+	| EFunc (s,e,t,env) -> DFunc (s,e,t,env)
 	| EList l -> raise (Failure "not implemented yet")
 	| EBool b -> raise (Failure "bool is not denotabile")	
 ;;
@@ -291,7 +291,7 @@ and list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
 let rec fun_sem (f:fun_exp) (env:environment) (sto:storage) =
 	match f with
 		| Fvar vf -> get_var_value vf env sto
-		| Fdefine (vp, s) -> EFunc (s, vp, env)
+		| Fdefine (vp, s,e) -> EFunc (s,e, vp, env)
 ;;
 
 let exp_sem (e:exp) (env:environment) (sto:storage) =
@@ -313,7 +313,7 @@ let rec print_expressible (e:expressible) =
 				Printf.printf ",";
 				print_expressible p2;
 				Printf.printf ")"
-		| EFunc (s,v,e) -> Printf.printf "Printing functions is not supported yet"
+		| EFunc (s,e,t,env) -> Printf.printf "Printing functions is not supported yet"
 		| EList Empty -> Printf.printf "Empty"
 		| EList Conc (n,l) -> 
 				Printf.printf "[%d," n;
@@ -355,13 +355,13 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 	| Sblock s1 ->
 		let (env1,sto1) = sem s1 env sto in
 			(env,sto1)
-	| Scall ( vf , e) ->
+	| Scall ( returnVar, vf , e) ->
 		(
-			let (s,vp,f_env)=expressible_to_function (get_var_value vf env sto) in
-			(*DA STRAMEGA RICONTROLLARE *)
+			let (s,returnExp,vp,f_env)=expressible_to_function (get_var_value vf env sto) in
 				let new_f_env = bind f_env vp (expressible_to_denotabile (exp_sem e env sto)) in
 					let (env1, sto1) =  sem s new_f_env sto in
-						(env, sto1)
+						let (env2,sto2) = sem (Sassign (returnVar, returnExp)) env1 sto1 in
+							(env, sto2)
 		)
 	| SvarArray (arrayName, lengthExp , initValueExp) ->
 		(
