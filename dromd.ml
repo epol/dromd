@@ -26,30 +26,38 @@ open Semantic;;*)
 #use "semantic.ml"
 
 let env = function
-	| "x" -> L 1
-	| "y" -> DInt 7
 	| _ -> raise (Failure "Name not declared")
 ;;
 
 let sto = 
-	2 ,
+	1 ,
 	(
 		function
-			| 1 -> SInt 5
 			| _ -> raise (Failure "Segmentation Fault") 
 	)
 ;;
 
-let stm1 = Ssequence (
-	Svar ( "f" , Fexp (Fdefine ("t",Sprint (Aexp (Avar "t"))))),
+
+let test1 = 
 	Ssequence (
-		Sassign ("x", Aexp (Aplus ((Avar "x"), (Avar "y")))),
-		Scall ("f",Aexp (Avar "x"))
+		Svar ( "f" , Fexp (Fdefine ( "t" , Sskip , Aexp (Aplus ( Avar "t" , Anum 10 ))))),
+		Ssequence (
+			Slet ("costante", Aexp (Anum 5)),
+			Ssequence (
+				Svar ( "variabile" , Aexp (Aneg (Avar "costante"))),
+				Ssequence (
+					Svar ( "result" , Aexp (Anum 9999)),
+					Ssequence (
+						Scall ("result", Fvar "f", Aexp (Avar "costante")),
+						Sprint (Aexp (Avar "result"))
+					)
+				)
+			)
 		)
 	)
 ;;
 
-let (env1, sto1) = sem stm1 env sto;;
+let (env1, sto1) = sem test1 env sto;;
 
 (*
 
