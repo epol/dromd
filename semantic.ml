@@ -367,8 +367,9 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 			let (s1,returnExp,vp,f_env)=expressible_to_function (fun_sem funNameExp env sto) in
 				let new_f_env = bind f_env vp (expressible_to_denotabile (exp_sem e env sto)) in
 					let (env1, sto1) =  sem s1 new_f_env sto in
-						let (env2,sto2) = sem (Sassign (returnVar, returnExp)) env1 sto1 in
-							(env, sto2)
+						match env returnVar with
+							| L l -> ( env , update_storage sto1 l (expressible_to_storable(exp_sem returnExp env1 sto1)))
+							| _ -> raise (Failure "A function result must be stored in a variable!")
 		)
 	| SvarArray (arrayName, lengthExp , initValueExp) ->
 		(

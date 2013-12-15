@@ -26,7 +26,7 @@ open Semantic;;*)
 #use "semantic.ml"
 
 let env = function
-	| _ -> raise (Failure "Name not declared")
+	| name -> raise (Failure name)
 ;;
 
 let sto = 
