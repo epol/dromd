@@ -9,6 +9,8 @@ Si aggiunga ai comandi il comando "iter" che data una espressione l la cui seman
 Caso "map su array"
 Si aggiunga ai comandi il comando "map" che dato un identificatore i che denota un array, e una espressione f la cui semantica è una funzione, modifica l'array denotato da i, rimpiazzando ogni valore x in esso contenuto, alla stessa posizione, con f(x)
 
-Caso "iterazione su array"
-Si aggiunga ai comandi il comando "iter" che dato un identificatore i che denota un array e un identificatore p che denota un sottoprogramma, esegue il sottoprogramma p tante volte quanti sono gli elementi di i, applicando p ad ogni elemento di i in ordine crescente di indice.
-
+Programmi di test per:
+- liste
+- map e iter su liste
+- coppie
+- if-then-else
