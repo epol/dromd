@@ -224,6 +224,13 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 				| DList l , EInt n -> EInt ( access_list_n l n )
 				| _ -> raise (Failure "Illegal access to a list")
 		)
+	| AlistHead l1 -> 
+		(
+			match list_sem l1 env sto with
+				| EList Empty -> raise (Failure "Trying to access the head of an empty list")
+				| EList Conc (n,l2) -> EInt n
+				| _ -> raise (Failure "Not a list")
+		)
 (*	| _ -> raise (Failure "Invalid a-exp") *)
 
 and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
@@ -250,9 +257,8 @@ and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
 				| EPair (r1, r2) -> r2
 				| _ -> raise (Failure "I can only project a couple!")
 		)
-;;
 
-let rec b_sem (s:b_exp) (env:environment) (sto:storage) = match s with
+and b_sem (s:b_exp) (env:environment) (sto:storage) = match s with
 	| Btrue -> EBool true
 	| Bfalse -> EBool false
 	| Bequal (a1,a2) -> EBool (expressible_to_int (a_sem a1 env sto) = expressible_to_int (a_sem a2 env sto))
@@ -272,13 +278,6 @@ and list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
 				let l=list_sem le env sto in
 					EList (Conc ((expressible_to_int a), (expressible_to_list l)))
 	| Lempty -> EList Empty
-	| Lhead l1 -> 
-		(
-			match list_sem l1 env sto with
-				| EList Empty -> raise (Failure "Trying to access the head of an empty list")
-				| EList Conc (n,l2) -> EInt n
-				| _ -> raise (Failure "Not a list")
-		)
 	| Ltail l1 -> 
 		(
 			match list_sem l1 env sto with

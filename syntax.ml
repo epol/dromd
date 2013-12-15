@@ -43,6 +43,7 @@ type a_exp =
 	| Aarr2pnt of vname
 	(* lists *)
 	| AvarList of vname*a_exp
+	| AlistHead of list_exp
 and b_exp =
 	| Btrue
 	| Bfalse
@@ -55,7 +56,6 @@ and list_exp =
 	| Lempty
 	| LpushFront of a_exp * list_exp
 	| Lvar of vname
-	| Lhead of list_exp
 	| Ltail of list_exp
 and pair_exp =
 	| Pvar of vname
