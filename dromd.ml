@@ -26,7 +26,7 @@ open Semantic;;*)
 #use "semantic.ml"
 
 let env = function
-	| name -> raise (Failure name)
+	| name -> raise (Failure (String.concat "" [ "Variable not found: " ; name ]))
 ;;
 
 let sto = 
@@ -40,7 +40,12 @@ let sto =
 
 let test1 = 
 	Ssequence (
-		Svar ( "f" , Fexp (Fdefine ( "t" , Sskip , Aexp (Aplus ( Avar "t" , Anum 10 ))))),
+		Svar ( "f" , Fexp (Fdefine ( "variabilePnt" , 
+										Ssequence (
+											SassignPnt (Avar "variabilePnt" , Aexp (Aplus (Apnt2val (Avar "variabilePnt"), Anum 1))),
+											Sprint ( Aexp (Apnt2val (Avar "variabilePnt")))
+										),
+										Aexp (Aplus ( Apnt2val (Avar "variabilePnt") , Anum 10 ))))),
 		Ssequence (
 			Slet ("costante", Aexp (Anum 5)),
 			Ssequence (
@@ -48,8 +53,38 @@ let test1 =
 				Ssequence (
 					Svar ( "result" , Aexp (Anum 9999)),
 					Ssequence (
-						Scall ("result", Fvar "f", Aexp (Avar "costante")),
-						Sprint (Aexp (Avar "result"))
+						Scall ("result", Fvar "f", Aexp (Avar2pnt "variabile")),
+						Ssequence (
+							Sprint (Aexp (Avar "result")),
+							Ssequence (
+								Sblock (
+									Ssequence (
+										Svar ( "lambda" , Aexp (Anum 10 )),
+										Sassign ( "f" , Fexp ( Fdefine ( "t" , Sprint ( Aexp (Aprod (Avar "t", Avar "lambda"))) , Aexp (Aprod (Avar "t", Avar "lambda")) )))
+									)
+								),
+								Ssequence (
+									SvarArray ( "array" , Anum 5 , Anum 0 ),
+									Ssequence (
+										Sblock (
+											Ssequence (
+												Svar ( "i" , Aexp (Anum 0)),
+												Swhile ( Band (Bleq ( Avar "i" , Anum 5 ) , Bnot ( Bequal ( Avar "i" , Anum 5))) , 
+																	Ssequence (
+																		SassignArray ( "array" , Avar "i" , Avar "i"),
+																		Sassign ("i" , Aexp (Aplus (Avar "i", Anum 1 )))
+																	)
+																)
+											)
+										),
+										Ssequence (
+											SiterArray ("array", Fvar "f"),
+											Sskip (* TODO: Here we should try the map function *)
+										)
+									)
+								)
+							)
+						)
 					)
 				)
 			)
