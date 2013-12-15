@@ -92,6 +92,8 @@ let test1 =
 	)
 ;;
 
+Printf.printf "%s\n" (stm_to_str test1 0);;
+
 let (env1, sto1) = sem test1 env sto;;
 
 (*

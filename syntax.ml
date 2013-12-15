@@ -38,11 +38,11 @@ type a_exp =
 	(* array *)
 	| AvarArray of vname * a_exp
 	(* pointers *)
-	| Apnt2val of a_exp
+	| Apnt2val of a_exp (* TODO: Non c'è un modo migliore di farlo? *)
 	| Avar2pnt of vname
 	| Aarr2pnt of vname
 	(* lists *)
-	| AvarList of vname*a_exp
+	| AvarList of vname*a_exp (* TODO: Non dovrebbe accettare una list_exp *)
 	| AlistHead of list_exp
 and b_exp =
 	| Btrue
@@ -90,3 +90,80 @@ and stm =
 	| SassignPnt of a_exp * exp								(* *(a) := e																		*)
 	| SiterArray of vname * fun_exp
 ;;
+
+let rec tab n = match n with
+	| 0 -> ""
+	| x -> "  " ^ tab (x-1)
+;;
+
+let rec b_exp_to_str be = match be with 
+	| Btrue -> "true"
+	| Bfalse -> "false"
+	| Bequal (a1,a2) -> a_exp_to_str a1 ^ " == " ^ a_exp_to_str a2
+	| Bleq (a1,a2) -> a_exp_to_str a1 ^ " <= " ^ a_exp_to_str a2
+	| Bnot b -> "!("^b_exp_to_str b ^")"
+	| Band (b1, b2) -> b_exp_to_str b1 ^ " && " ^ b_exp_to_str b2
+	| BisListEmpty le -> "is_empty("^list_exp_to_str le ^")"
+and a_exp_to_str ae = match ae with
+	| Avar (v) -> v
+	| Anum n-> string_of_int n
+	| Aplus (a1,a2) ->  a_exp_to_str a1 ^ " + " ^ a_exp_to_str a2
+	| Aminus (a1,a2) ->  a_exp_to_str a1 ^ " - " ^ a_exp_to_str a2
+	| Aneg a ->  "-(" ^ a_exp_to_str a ^ ")"
+	| Aprod (a1,a2) ->  "(" ^ a_exp_to_str a1 ^ ") * (" ^ a_exp_to_str a2 ^ ")"
+	| Adiv (a1,a2) ->  "(" ^ a_exp_to_str a1 ^ " / " ^ a_exp_to_str a2 ^ ")"
+	| Apair2num pe-> "pair_to_num(" ^ pair_exp_to_str pe ^")"
+	| AvarArray (v,a) -> v^"["^ a_exp_to_str a ^"]"
+	| Apnt2val a-> "*("^a_exp_to_str a^")"
+	| Avar2pnt v-> "&"^v^""
+	| Aarr2pnt v-> v
+	| AvarList (v,a) -> v^"["^ a_exp_to_str a ^"]"
+	| AlistHead le -> "head(" ^ list_exp_to_str le ^")"
+and list_exp_to_str le = match le with
+	| Lempty -> "[]"
+	| LpushFront (a,l) -> list_exp_to_str l ^ " : " ^ a_exp_to_str a
+	| Lvar v -> v
+	| Ltail l-> "tail(" ^ list_exp_to_str l ^")"
+and pair_exp_to_str pe = match pe with 
+	| Pvar v -> v
+	| Pnumnum (a1,a2) ->  "("^a_exp_to_str a1 ^ "," ^ a_exp_to_str a2 ^ ")"
+	| Ppairnum (p,a) ->  "("^pair_exp_to_str p ^ "," ^ a_exp_to_str a ^ ")"
+	| Pnumpair (a,p) ->  "("^a_exp_to_str a ^ "," ^ pair_exp_to_str p ^ ")"
+	| Ppairpair (p1,p2) ->  "("^pair_exp_to_str p1 ^ "," ^ pair_exp_to_str p2 ^ ")"
+	| Pproj1 p -> "fst(" ^ pair_exp_to_str p ^")"
+	| Pproj2 p -> "snd(" ^ pair_exp_to_str p ^")"
+and fun_exp_to_str fe ind=  match fe with
+	| Fvar v -> v;
+	| Fdefine (vp, s,e ) -> "fun ("^vp^") {\n" ^
+			stm_to_str s (ind+1) ^ "\n" ^
+			tab (ind+1) ^ "return " ^ exp_to_str e ind ^ ";\n"^
+			tab ind ^ "}"
+and exp_to_str e ind= match e with
+	| Aexp ae -> a_exp_to_str ae
+	| Bexp be -> b_exp_to_str be
+	| Lexp le -> list_exp_to_str le
+	| Pexp pe -> pair_exp_to_str pe
+	| Fexp fe -> fun_exp_to_str fe ind
+and stm_to_str s ind=	match s with
+	| Sskip -> tab ind ^ "skip;"
+	| Ssequence (s1,s2) -> (stm_to_str s1 ind) ^ "\n" ^ (stm_to_str s2 ind)
+	| Sassign (v, e) -> tab ind ^ v ^ " := " ^ exp_to_str e ind^ ";"
+	| Slet (v, e) -> tab ind ^ "let " ^ v ^ " := " ^ exp_to_str e ind^ ";"
+	| Svar (v, e) -> tab ind ^ "var " ^ v ^ " := " ^ exp_to_str e ind^ ";"
+	| Sifthenelse (be, s1, s2) -> tab ind ^ "if " ^ b_exp_to_str be ^ "{\n" ^ stm_to_str s1 ind ^"\n" ^ tab ind ^"} else {\n"^ stm_to_str s2 ind ^ tab ind ^ "\n"
+	| Swhile (be, s) -> tab ind ^ "while (" ^ b_exp_to_str be ^ ") {\n" ^ stm_to_str s (ind+1) ^ "\n"^ tab ind ^"}"
+	| Sblock s -> tab ind ^ "{\n" ^ stm_to_str s (ind+1) ^ "\n" ^ tab ind ^"}"
+	| Scall (v,fe,e) -> v ^ " := " ^ fun_exp_to_str fe ind ^ "(" ^ exp_to_str e ind^ ");"
+	| Sprint e -> tab ind ^ "print " ^ exp_to_str e ind ^ ";"
+	| SvarArray (v,ae_len,ae_init) -> tab ind ^ "var " ^ v ^ "[] of len " ^ a_exp_to_str ae_len ^ " := " ^ a_exp_to_str ae_init ^ ";"
+	| SassignArray (v,ae_index,ae_value) ->  tab ind ^ v ^ "[" ^ a_exp_to_str ae_index ^ "] := " ^ a_exp_to_str ae_value ^ ";"
+	| SassignPnt (ae_pnt, e) -> tab ind ^ "*("^a_exp_to_str ae_pnt ^ ") := " ^ exp_to_str e ind^ ";"
+	| SiterArray (v, fe) -> tab ind ^ "(Stampa iter array non implementata)"
+;;
+	 
+	
+	
+	
+	
+	
+	
