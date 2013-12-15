@@ -355,9 +355,9 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 	| Sblock s1 ->
 		let (env1,sto1) = sem s1 env sto in
 			(env,sto1)
-	| Scall ( returnVar, vf , e) ->
+	| Scall ( returnVar, funNameExp , e) ->
 		(
-			let (s,returnExp,vp,f_env)=expressible_to_function (get_var_value vf env sto) in
+			let (s,returnExp,vp,f_env)=expressible_to_function (fun_sem funNameExp env sto) in
 				let new_f_env = bind f_env vp (expressible_to_denotabile (exp_sem e env sto)) in
 					let (env1, sto1) =  sem s new_f_env sto in
 						let (env2,sto2) = sem (Sassign (returnVar, returnExp)) env1 sto1 in

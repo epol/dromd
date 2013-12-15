@@ -83,7 +83,7 @@ and stm =
 	| Sifthenelse of b_exp * stm * stm				(* if b then s1 else s2													*)
 	| Swhile of b_exp * stm										(* while (b1) do s1 														*)
 	| Sblock of stm														(* begin s1 end																	*)
-	| Scall of vname * vname * exp						(* x := f ( e1)																	*)
+	| Scall of vname * fun_exp * exp					(* x := f ( e1)																	*)
 	| Sprint of exp														(* print (a1)																		*)
 	| SvarArray of vname * a_exp * a_exp			(* var arrayName[arrayLength] = arrayInitValue	*)
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 							*)
