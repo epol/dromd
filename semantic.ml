@@ -320,7 +320,14 @@ let rec print_expressible (e:expressible) =
 				print_expressible (EList l);
 				Printf.printf "]"
 
-let rec sem (s:stm) (env:environment) (sto:storage) = match s with
+let rec iterArray (element:loc) (left:int) (fun_stm:stm) (fun_param:vname) (fun_env:environment) (sto:storage) = 
+	if left = 0 then sto
+	else
+		let fun_env1  = bind fun_env fun_param (expressible_to_denotabile (storable_to_expressible ((snd sto) element))) in
+			let (env_garage,sto1) = sem fun_stm fun_env1 sto in
+				iterArray (element +1) (left -1) fun_stm fun_param fun_env sto1
+
+and sem (s:stm) (env:environment) (sto:storage) = match s with
 	| Slet (v,e) -> (bind env v (expressible_to_denotabile (exp_sem e env sto)),sto)
 	| Sskip -> (env, sto)
 	| Sassign (v,e) ->
@@ -357,9 +364,9 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 			(env,sto1)
 	| Scall ( returnVar, funNameExp , e) ->
 		(
-			let (s,returnExp,vp,f_env)=expressible_to_function (fun_sem funNameExp env sto) in
+			let (s1,returnExp,vp,f_env)=expressible_to_function (fun_sem funNameExp env sto) in
 				let new_f_env = bind f_env vp (expressible_to_denotabile (exp_sem e env sto)) in
-					let (env1, sto1) =  sem s new_f_env sto in
+					let (env1, sto1) =  sem s1 new_f_env sto in
 						let (env2,sto2) = sem (Sassign (returnVar, returnExp)) env1 sto1 in
 							(env, sto2)
 		)
@@ -398,6 +405,18 @@ let rec sem (s:stm) (env:environment) (sto:storage) = match s with
 					env,
 					update_storage sto address (expressible_to_storable(exp_sem e env sto))
 				| _ -> raise (Failure "Invalid pointer value")
+		)
+	| SiterArray (arrayName, funExp) ->
+		(
+			match env arrayName with
+				| DArray (length, firstElement) ->
+					(
+						match fun_sem funExp env sto with
+							| EFunc (funcStm,returnExp,paramName,f_env) -> 
+								(env, iterArray firstElement length funcStm paramName f_env sto)
+							| _ -> raise (Failure "Not a valid function")
+					)
+				| _ -> raise (Failure "iterArray must be applied to an array!")
 		)
 (*	| _ -> raise (Failure "Semantic not implemented yet") *)
 ;;

@@ -88,4 +88,5 @@ and stm =
 	| SvarArray of vname * a_exp * a_exp			(* var arrayName[arrayLength] = arrayInitValue	*)
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 							*)
 	| SassignPnt of a_exp * exp								(* *(a) := e																		*)
+	| SiterArray of vname * fun_exp
 ;;
