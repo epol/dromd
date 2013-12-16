@@ -218,10 +218,10 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 				| DArray ( arrayLength, arrayLocation ) -> EInt arrayLocation
 				| _ -> raise (Failure "This is not an array")
 		)
-	| AvarList ( v, a) -> 
+	| AvarList ( l, a) -> 
 		(
-			match (env v , a_sem a env sto ) with
-				| DList l , EInt n -> EInt ( access_list_n l n )
+			match (list_sem l env sto , a_sem a env sto ) with
+				| EList l , EInt n -> EInt ( access_list_n l n )
 				| _ -> raise (Failure "Illegal access to a list")
 		)
 	| AlistHead l1 -> 

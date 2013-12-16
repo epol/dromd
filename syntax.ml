@@ -42,7 +42,7 @@ type a_exp =
 	| Avar2pnt of vname
 	| Aarr2pnt of vname
 	(* lists *)
-	| AvarList of vname*a_exp (* TODO: Non dovrebbe accettare una list_exp *)
+	| AvarList of list_exp*a_exp
 	| AlistHead of list_exp
 and b_exp =
 	| Btrue
@@ -117,7 +117,7 @@ and a_exp_to_str ae = match ae with
 	| Apnt2val a-> "*("^a_exp_to_str a^")"
 	| Avar2pnt v-> "&"^v^""
 	| Aarr2pnt v-> v
-	| AvarList (v,a) -> v^"["^ a_exp_to_str a ^"]"
+	| AvarList (l,a) -> list_exp_to_str l^"["^ a_exp_to_str a ^"]"
 	| AlistHead le -> "head(" ^ list_exp_to_str le ^")"
 and list_exp_to_str le = match le with
 	| Lempty -> "[]"
