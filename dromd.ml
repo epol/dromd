@@ -111,6 +111,40 @@ Printf.printf "%s\n" (stm_to_str test2 0);;
 Printf.printf "%s\n" "---- Result ----";;
 let (env1, sto1) = sem test2 env sto;;
 
+let test3 = 
+	Ssequence (
+		Slet("l",Lexp (LpushFront (Anum 5, LpushFront (Anum 7, (LpushFront (Anum 4, Lempty)))))),
+	Ssequence (
+		Slet("f", Fexp ( Fdefine ("x", (Sskip),Aexp (Aplus(Avar "x",Anum 1))))),
+	Ssequence(
+		Slet("map", Fexp ( Fdefine ("arg", (
+				Ssequence (
+					Slet("res", Lexp Lempty),
+				Ssequence (
+					Svar ("y", Aexp (Anum 0)),
+					Swhile (BisListEmpty (Lvar "l"), 
+						Ssequence (
+							Scall ("y", Fpair2fun (Pproj1(Pvar "arg")), Aexp (AlistHead (Lpair2list (Pproj2 (Pvar "arg"))))),
+						Ssequence (
+							Sassign("res", Lexp (LpushFront (Avar "y", Lvar "res"))),
+							Slet ("l", Lexp (Ltail (Lvar "l")))
+						))
+					)
+					))),
+			Lexp (Lvar "res")
+			))
+		),
+		Ssequence(
+			Svar("z", Lexp Lempty),
+		Ssequence(
+			Scall ("z",Fvar "map", Pexp (Pnumnum(Fexp (Fvar "f"), Lexp (Lvar "l")))),
+			Sprint (Lexp (Lvar "l"))
+	)))))
+;;
+Printf.printf "%s\n" "---- Code ----";;
+Printf.printf "%s\n" (stm_to_str test3 0);;
+Printf.printf "%s\n" "---- Result ----";;
+let (env1, sto1) = sem test3 env sto;;
 
 (*
 

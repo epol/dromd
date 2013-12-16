@@ -57,17 +57,19 @@ and list_exp =
 	| LpushFront of a_exp * list_exp
 	| Lvar of vname
 	| Ltail of list_exp
+	| Lpair2list of pair_exp
 and pair_exp =
 	| Pvar of vname
-	| Pnumnum of a_exp * a_exp
-	| Ppairnum of pair_exp * a_exp
-	| Pnumpair of  a_exp * pair_exp
+	| Pnumnum of exp * exp
+	| Ppairnum of pair_exp * exp
+	| Pnumpair of  exp * pair_exp
 	| Ppairpair of pair_exp * pair_exp
 	| Pproj1 of pair_exp
 	| Pproj2 of pair_exp
 and fun_exp =
 	| Fvar of vname
 	| Fdefine of vname * stm * exp						(* execute stm with param v, return e						*)
+	| Fpair2fun of pair_exp
 and exp = 
 	| Aexp of a_exp
 	| Bexp of b_exp
@@ -127,11 +129,12 @@ and list_exp_to_str le = match le with
 	| LpushFront (a,l) -> a_exp_to_str a ^ " : " ^ list_exp_to_str l
 	| Lvar v -> v
 	| Ltail l-> "tail(" ^ list_exp_to_str l ^")"
+	| Lpair2list pe -> "pair_to_list(" ^ pair_exp_to_str pe ^")"
 and pair_exp_to_str pe = match pe with 
 	| Pvar v -> v
-	| Pnumnum (a1,a2) ->  "("^a_exp_to_str a1 ^ "," ^ a_exp_to_str a2 ^ ")"
-	| Ppairnum (p,a) ->  "("^pair_exp_to_str p ^ "," ^ a_exp_to_str a ^ ")"
-	| Pnumpair (a,p) ->  "("^a_exp_to_str a ^ "," ^ pair_exp_to_str p ^ ")"
+	| Pnumnum (a1,a2) ->  "("^(exp_to_str a1 0) ^ "," ^ (exp_to_str a2 0) ^ ")"
+	| Ppairnum (p,a) ->  "("^pair_exp_to_str p ^ "," ^ exp_to_str a 0 ^ ")"
+	| Pnumpair (a,p) ->  "("^exp_to_str a 0 ^ "," ^ pair_exp_to_str p ^ ")"
 	| Ppairpair (p1,p2) ->  "("^pair_exp_to_str p1 ^ "," ^ pair_exp_to_str p2 ^ ")"
 	| Pproj1 p -> "fst(" ^ pair_exp_to_str p ^")"
 	| Pproj2 p -> "snd(" ^ pair_exp_to_str p ^")"
@@ -141,6 +144,7 @@ and fun_exp_to_str fe ind=  match fe with
 			stm_to_str s (ind+1) ^ "\n" ^
 			tab (ind+1) ^ "return " ^ exp_to_str e ind ^ ";\n"^
 			tab ind ^ "}"
+	| Fpair2fun pe -> "pair_to_fun(" ^ pair_exp_to_str pe ^")"
 and exp_to_str e ind= match e with
 	| Aexp ae -> a_exp_to_str ae
 	| Bexp be -> b_exp_to_str be
