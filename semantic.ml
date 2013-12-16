@@ -32,12 +32,12 @@ type storable =
 	| SInt of int
 (*| SPointer of loc*)
 	| SPair of storable * storable
-	| SFunc of stm * exp * vname * environment
+	| SFunc of (stm * exp * vname * environment)
 and denotabile = 
 	| DInt of int
 (*	| DPointer of loc *)
 	| DPair of denotabile * denotabile
-	| DFunc of stm * exp * vname * environment
+	| DFunc of (stm * exp * vname * environment)
 	| L of loc
 	| DList of int_list
 	| DArray of int * loc
@@ -45,7 +45,7 @@ and expressible =
 	| EInt of int
 	| EBool of bool
 	| EPair of expressible * expressible
-	| EFunc of stm * exp * vname * environment
+	| EFunc of (stm * exp * vname * environment)
 	| EList of int_list
 and environment = vname -> denotabile
 ;;
@@ -147,7 +147,7 @@ let rec expressible_to_denotabile (e:expressible) = match e with
 	| EInt n -> DInt n
 	| EPair (p1, p2) -> DPair ( expressible_to_denotabile p1 , expressible_to_denotabile p2 )
 	| EFunc (s,e,t,env) -> DFunc (s,e,t,env)
-	| EList l -> raise (Failure "not implemented yet")
+	| EList l -> DList l
 	| EBool b -> raise (Failure "bool is not denotabile")	
 ;;
 
@@ -314,19 +314,29 @@ let rec print_expressible (e:expressible) =
 				print_expressible p2;
 				Printf.printf ")"
 		| EFunc (s,e,t,env) -> Printf.printf "Printing functions is not supported yet"
-		| EList Empty -> Printf.printf "Empty"
+		| EList Empty -> Printf.printf "[]"
 		| EList Conc (n,l) -> 
-				Printf.printf "[%d," n;
-				print_expressible (EList l);
-				Printf.printf "]"
+				Printf.printf "%d:" n;
+				print_expressible (EList l)
 
-let rec iterArray (element:loc) (left:int) (fun_stm:stm) (fun_param:vname) (fun_env:environment) (sto:storage) = 
+(* TODO Fare in modo che tutti i call usino questa funzione *)
+let rec call_function (f:stm*exp*vname*environment) (d:denotabile) (sto:storage) =
+	let (s,re, vp, f_env) = f in	
+	let new_f_env = bind f_env vp d in
+	let (env1, sto1) =  sem s new_f_env sto in
+		(exp_sem re env1 sto1,sto1)
+and iterArray (element:loc) (left:int) (fun_stm:stm) (fun_param:vname) (fun_env:environment) (sto:storage) = 
 	if left = 0 then sto
 	else
 		let fun_env1  = bind fun_env fun_param (expressible_to_denotabile (storable_to_expressible ((snd sto) element))) in
 			let (env_garage,sto1) = sem fun_stm fun_env1 sto in
 				iterArray (element +1) (left -1) fun_stm fun_param fun_env sto1
-
+and iter_list (l:int_list) (f:stm*exp*vname*environment) (sto:storage) = 
+	match l with
+		| Empty -> sto
+		| Conc (n,l1) ->
+				let sto1 = snd (call_function f (DInt n) sto) in
+				iter_list l1 f sto1
 and sem (s:stm) (env:environment) (sto:storage) = match s with
 	| Slet (v,e) -> (bind env v (expressible_to_denotabile (exp_sem e env sto)),sto)
 	| Sskip -> (env, sto)
@@ -418,6 +428,15 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 							| _ -> raise (Failure "Not a valid function")
 					)
 				| _ -> raise (Failure "iterArray must be applied to an array!")
+		)
+	| SiterList (le, fe) ->
+		(match list_sem le env sto with
+				| EList l ->
+					(match fun_sem fe env sto with
+							| EFunc f -> (env, iter_list l f sto )
+							| _ -> raise (Failure "Not a valid function")
+					)
+				| _ -> raise (Failure "iterList must be applied to a list!")
 		)
 (*	| _ -> raise (Failure "Semantic not implemented yet") *)
 ;;

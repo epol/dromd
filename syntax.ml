@@ -89,7 +89,10 @@ and stm =
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 							*)
 	| SassignPnt of a_exp * exp								(* *(a) := e																		*)
 	| SiterArray of vname * fun_exp
+	| SiterList of list_exp * fun_exp
 ;;
+
+(* funzioni di stampa *)
 
 let rec tab n = match n with
 	| 0 -> ""
@@ -121,7 +124,7 @@ and a_exp_to_str ae = match ae with
 	| AlistHead le -> "head(" ^ list_exp_to_str le ^")"
 and list_exp_to_str le = match le with
 	| Lempty -> "[]"
-	| LpushFront (a,l) -> list_exp_to_str l ^ " : " ^ a_exp_to_str a
+	| LpushFront (a,l) -> a_exp_to_str a ^ " : " ^ list_exp_to_str l
 	| Lvar v -> v
 	| Ltail l-> "tail(" ^ list_exp_to_str l ^")"
 and pair_exp_to_str pe = match pe with 
@@ -159,11 +162,5 @@ and stm_to_str s ind=	match s with
 	| SassignArray (v,ae_index,ae_value) ->  tab ind ^ v ^ "[" ^ a_exp_to_str ae_index ^ "] := " ^ a_exp_to_str ae_value ^ ";"
 	| SassignPnt (ae_pnt, e) -> tab ind ^ "*("^a_exp_to_str ae_pnt ^ ") := " ^ exp_to_str e ind^ ";"
 	| SiterArray (v, fe) -> tab ind ^ "(Stampa iter array non implementata)"
+	| SiterList (le, fe) -> tab ind ^ "iter_list(" ^ list_exp_to_str le ^ "," ^ fun_exp_to_str fe (ind+1) ^");"
 ;;
-	 
-	
-	
-	
-	
-	
-	
