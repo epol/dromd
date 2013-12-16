@@ -92,9 +92,25 @@ let test1 =
 	)
 ;;
 
+Printf.printf "%s\n" "---- Code ----";;
 Printf.printf "%s\n" (stm_to_str test1 0);;
-
+Printf.printf "%s\n" "---- Result ----";;
 let (env1, sto1) = sem test1 env sto;;
+
+let test2 = 
+	Ssequence (
+		Slet("l",Lexp (LpushFront (Anum 5, LpushFront (Anum 7, (LpushFront (Anum 4, Lempty)))))),
+		Ssequence (
+			Slet("f", Fexp ( Fdefine ("x", (Sprint (Aexp (Aplus(Avar "x",Anum 1)))),Aexp (Avar "x")))),
+			SiterList(Lvar "l", Fvar "f");
+		)
+	)
+;;
+Printf.printf "%s\n" "---- Code ----";;
+Printf.printf "%s\n" (stm_to_str test2 0);;
+Printf.printf "%s\n" "---- Result ----";;
+let (env1, sto1) = sem test2 env sto;;
+
 
 (*
 
