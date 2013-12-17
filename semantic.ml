@@ -45,7 +45,7 @@ and expressible =
 	| EInt of int
 	| EBool of bool
 	| EPair of expressible * expressible
-	| EFunc of (stm * exp * vname * environment)
+	| EFun of (stm * exp * vname * environment)
 	| EList of int_list
 and environment = vname -> denotabile
 ;;
@@ -104,7 +104,7 @@ let expressible_to_bool (e:expressible) = match e with
 ;;
 
 let expressible_to_function (e:expressible) = match e with
-	| EFunc (s,e,v,en) -> (s,e,v,en)
+	| EFun (s,e,v,en) -> (s,e,v,en)
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
@@ -121,7 +121,7 @@ let rec denotabile_to_expressible (d:denotabile) = match d with
 	| DInt n -> EInt n
 (*	| DPointer p -> EInt p *)
 	| DPair (p1, p2) -> EPair ( denotabile_to_expressible p1 , denotabile_to_expressible p2 )
-	| DFunc (s,e,t,env) -> EFunc (s,e,t,env)
+	| DFunc (s,e,t,env) -> EFun (s,e,t,env)
 	| DList l -> raise (Failure "bug in implementation")
 	| L l -> raise (Failure "bug in implementation")
 	| DArray (n,l) -> raise (Failure "bug in implementation or not implemented yet")
@@ -131,7 +131,7 @@ let rec storable_to_expressible (s:storable) = match s with
 	| SInt n -> EInt n
 (*	| SPointer p -> EInt p *)
 	| SPair (p1, p2) -> EPair ( storable_to_expressible p1 , storable_to_expressible p2)
-	| SFunc (s,e,t,env) -> EFunc (s,e,t,env)
+	| SFunc (s,e,t,env) -> EFun (s,e,t,env)
 ;;
 
 
@@ -139,14 +139,14 @@ let rec expressible_to_storable (e:expressible) = match e with
 	| EInt n -> SInt n
 	| EBool b -> raise (Failure "Bool is not storable")
 	| EPair (p1,p2) -> SPair ( expressible_to_storable p1, expressible_to_storable p2)
-	| EFunc (s,e,t,env) -> SFunc (s,e,t,env)
+	| EFun (s,e,t,env) -> SFunc (s,e,t,env)
 	| EList l -> raise (Failure "List is not storable")
 ;;
 
 let rec expressible_to_denotabile (e:expressible) = match e with
 	| EInt n -> DInt n
 	| EPair (p1, p2) -> DPair ( expressible_to_denotabile p1 , expressible_to_denotabile p2 )
-	| EFunc (s,e,t,env) -> DFunc (s,e,t,env)
+	| EFun (s,e,t,env) -> DFunc (s,e,t,env)
 	| EList l -> DList l
 	| EBool b -> raise (Failure "bool is not denotabile")	
 ;;
@@ -169,8 +169,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Aprod ( a1,a2) -> EInt (expressible_to_int ( a_sem a1 env sto ) * expressible_to_int ( a_sem a2 env sto ))
 	| Adiv ( a1,a2) -> EInt (expressible_to_int ( a_sem a1 env sto ) / expressible_to_int ( a_sem a2 env sto ))
 	| Apair2num p1 -> 
-		(
-			match pair_sem p1 env sto with
+		(match pair_sem p1 env sto with
 				| EInt n -> EInt n
 				| _ -> raise (Failure "I can't do arithmetic with pairs!")
 		)
@@ -241,9 +240,9 @@ and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
 				| L l -> storable_to_expressible ((snd sto) l)
 				| _ -> raise (Failure "Pvar must be applied to a pair")
 		)
-	| Pnumnum (a1, a2) -> EPair ( a_sem a1 env sto, a_sem a2 env sto)
-	| Ppairnum (p1 , a1) -> EPair ( pair_sem p1 env sto, a_sem a1 env sto)
-	| Pnumpair (a1 , p1) -> EPair ( a_sem a1 env sto, pair_sem p1 env sto)
+	| Pnumnum (a1, a2) -> EPair ( exp_sem a1 env sto, exp_sem a2 env sto)
+	| Ppairnum (p1 , a1) -> EPair ( pair_sem p1 env sto, exp_sem a1 env sto)
+	| Pnumpair (a1 , p1) -> EPair ( exp_sem a1 env sto, pair_sem p1 env sto)
 	| Ppairpair (p1 , p2) -> EPair ( pair_sem p1 env sto, pair_sem p2 env sto)
 	| Pproj1 p1 -> 
 		(
@@ -285,16 +284,21 @@ and list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
 				| EList Conc (n,l2) -> EList l2
 				| _ -> raise (Failure "Not a list")
 		)
-;;
-
-
-let rec fun_sem (f:fun_exp) (env:environment) (sto:storage) =
+	| Lpair2list pe ->
+			(match pair_sem pe env sto with
+					| EList l -> EList l
+					| _ -> raise (Failure "Invalid conversion from pair to function")
+			)
+and fun_sem (f:fun_exp) (env:environment) (sto:storage) =
 	match f with
 		| Fvar vf -> get_var_value vf env sto
-		| Fdefine (vp, s,e) -> EFunc (s,e, vp, env)
-;;
-
-let exp_sem (e:exp) (env:environment) (sto:storage) =
+		| Fdefine (vp, s,e) -> EFun (s,e, vp, env)
+		| Fpair2fun pe -> 
+			(match pair_sem pe env sto with
+					| EFun n -> EFun n
+					| _ -> raise (Failure "Invalid conversion from pair to function")
+			)
+and exp_sem (e:exp) (env:environment) (sto:storage) =
 	match e with
 		| Aexp ae -> a_sem ae env sto
 		| Bexp be -> b_sem be env sto
@@ -313,7 +317,7 @@ let rec print_expressible (e:expressible) =
 				Printf.printf ",";
 				print_expressible p2;
 				Printf.printf ")"
-		| EFunc (s,e,t,env) -> Printf.printf "Printing functions is not supported yet"
+		| EFun (s,e,t,env) -> Printf.printf "Printing functions is not supported yet"
 		| EList Empty -> Printf.printf "[]"
 		| EList Conc (n,l) -> 
 				Printf.printf "%d:" n;
@@ -423,7 +427,7 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 				| DArray (length, firstElement) ->
 					(
 						match fun_sem funExp env sto with
-							| EFunc (funcStm,returnExp,paramName,f_env) -> 
+							| EFun (funcStm,returnExp,paramName,f_env) -> 
 								(env, iterArray firstElement length funcStm paramName f_env sto)
 							| _ -> raise (Failure "Not a valid function")
 					)
@@ -453,7 +457,7 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 		(match list_sem le env sto with
 				| EList l ->
 					(match fun_sem fe env sto with
-							| EFunc f -> (env, iter_list l f sto )
+							| EFun f -> (env, iter_list l f sto )
 							| _ -> raise (Failure "Not a valid function")
 					)
 				| _ -> raise (Failure "iterList must be applied to a list!")
