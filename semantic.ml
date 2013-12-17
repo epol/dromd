@@ -429,6 +429,26 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 					)
 				| _ -> raise (Failure "iterArray must be applied to an array!")
 		)
+	| SmapArray (arrayName, funExp ) ->
+		(
+			match (env arrayName) with
+				| DArray (arrayLength, arrayFirstElement ) ->
+					let mapStm = (Ssequence (
+																Ssequence (Svar  ("i", Aexp (Anum 0)) , Svar ("temp" , Aexp (Anum 0)) ),
+																Swhile ( Band (Bleq ( Avar "i" , Anum arrayLength ) , Bnot ( Bequal ( Avar "i" , Anum arrayLength))) ,
+																				Ssequence (
+																						Ssequence (
+																										Scall ("temp", funExp , Aexp (AvarArray (arrayName, Avar "i"))),
+																										SassignArray ("array", Avar "i", Avar "temp")
+																										),
+																						Sassign ("i", Aexp (Aplus (Avar "i" , Anum 1)))
+																						)
+																			)
+																)
+												)
+						in sem mapStm env sto
+				| _ -> raise (Failure "Not a valid array in SmapArray call") 
+		)
 	| SiterList (le, fe) ->
 		(match list_sem le env sto with
 				| EList l ->

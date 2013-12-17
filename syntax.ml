@@ -89,6 +89,7 @@ and stm =
 	|	SassignArray of vname * a_exp * a_exp		(* arrayName [indexExp] = valueExp 							*)
 	| SassignPnt of a_exp * exp								(* *(a) := e																		*)
 	| SiterArray of vname * fun_exp
+	| SmapArray of vname * fun_exp
 	| SiterList of list_exp * fun_exp
 ;;
 
@@ -161,6 +162,7 @@ and stm_to_str s ind=	match s with
 	| SvarArray (v,ae_len,ae_init) -> tab ind ^ "var " ^ v ^ "[] of len " ^ a_exp_to_str ae_len ^ " := " ^ a_exp_to_str ae_init ^ ";"
 	| SassignArray (v,ae_index,ae_value) ->  tab ind ^ v ^ "[" ^ a_exp_to_str ae_index ^ "] := " ^ a_exp_to_str ae_value ^ ";"
 	| SassignPnt (ae_pnt, e) -> tab ind ^ "*("^a_exp_to_str ae_pnt ^ ") := " ^ exp_to_str e ind^ ";"
-	| SiterArray (v, fe) -> tab ind ^ "(Stampa iter array non implementata)"
+	| SiterArray (v, fe) -> tab ind ^ "iter_array(" ^ v ^ "," ^ fun_exp_to_str fe (ind+1) ^ ");"
+	| SmapArray (v, fe) -> tab ind ^ "map_array(" ^ v ^ "," ^ fun_exp_to_str fe (ind+1) ^ ");"
 	| SiterList (le, fe) -> tab ind ^ "iter_list(" ^ list_exp_to_str le ^ "," ^ fun_exp_to_str fe (ind+1) ^");"
 ;;

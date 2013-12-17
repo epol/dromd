@@ -78,8 +78,8 @@ let test1 =
 											)
 										),
 										Ssequence (
-											SiterArray ("array", Fvar "f"),
-											Sskip (* TODO: Here we should try the map function *)
+											SmapArray ("array", Fvar "f"),
+											SiterArray ("array", Fvar "f")
 										)
 									)
 								)
