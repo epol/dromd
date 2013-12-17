@@ -298,6 +298,24 @@ and fun_sem (f:fun_exp) (env:environment) (sto:storage) =
 					| EFun n -> EFun n
 					| _ -> raise (Failure "Invalid conversion from pair to function")
 			)
+		| Fcomp (f2, f1) ->
+			(
+				match (fun_sem f1 env sto) , (fun_sem f2 env sto ) with
+					| (EFun (stm1,exp1, param1, env1) ) , (EFun (stm2,exp2, param2, env2) ) ->
+						EFun (
+							Ssequence (
+									Svar ("temp" , Aexp (Anum 0)),
+									Ssequence (
+										Scall ("temp" , f1 , Aexp (Avar param1)),
+										Scall ("temp" , f2 , Aexp (Avar "temp"))
+									)
+								),
+							Aexp (Avar "temp"), 
+							param1,
+							env
+						)
+					| _ -> raise (Failure "Invalid function composition")
+			)
 and exp_sem (e:exp) (env:environment) (sto:storage) =
 	match e with
 		| Aexp ae -> a_sem ae env sto

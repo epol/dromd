@@ -70,6 +70,7 @@ and fun_exp =
 	| Fvar of vname
 	| Fdefine of vname * stm * exp						(* execute stm with param v, return e						*)
 	| Fpair2fun of pair_exp
+	| Fcomp	of fun_exp * fun_exp
 and exp = 
 	| Aexp of a_exp
 	| Bexp of b_exp
@@ -146,6 +147,7 @@ and fun_exp_to_str fe ind=  match fe with
 			tab (ind+1) ^ "return " ^ exp_to_str e ind ^ ";\n"^
 			tab ind ^ "}"
 	| Fpair2fun pe -> "pair_to_fun(" ^ pair_exp_to_str pe ^")"
+	| Fcomp (f2, f1) -> fun_exp_to_str f2 (ind +1) ^ "comp" ^ fun_exp_to_str f1 (ind + 1)
 and exp_to_str e ind= match e with
 	| Aexp ae -> a_exp_to_str ae
 	| Bexp be -> b_exp_to_str be
