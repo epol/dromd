@@ -42,7 +42,7 @@ type a_exp =
 	| Avar2pnt of vname
 	| Aarr2pnt of vname
 	(* lists *)
-	| AvarList of list_exp*a_exp
+	| AvarList of list_exp * a_exp
 	| AlistHead of list_exp
 and b_exp =
 	| Btrue

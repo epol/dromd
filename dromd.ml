@@ -26,7 +26,7 @@ open Semantic;;*)
 #use "semantic.ml"
 
 let env = function
-	| name -> raise (Failure (String.concat "" [ "Variable not found: " ; name ]))
+	| name -> raise (Failure (String.concat "" [ "Name not found: " ; name ]))
 ;;
 
 let sto = 
@@ -111,7 +111,7 @@ Printf.printf "%s\n" "---- Code ----";;
 Printf.printf "%s\n" (stm_to_str test2 0);;
 Printf.printf "%s\n" "---- Result ----";;
 let (env1, sto1) = sem test2 env sto;;
-
+(*
 let test3 = 
 	Ssequence (
 		Slet("l",Lexp (LpushFront (Anum 5, LpushFront (Anum 7, (LpushFront (Anum 4, Lempty)))))),
@@ -146,5 +146,36 @@ Printf.printf "%s\n" "---- Code ----";;
 Printf.printf "%s\n" (stm_to_str test3 0);;
 Printf.printf "%s\n" "---- Result ----";;
 let (env1, sto1) = sem test3 env sto;;
+*)
 
+let test4 = 
+	Ssequence (
+		Slet("l",Lexp (LpushFront (Anum 5, LpushFront (Anum 7, (LpushFront (Anum 4, Lempty)))))),
+	Ssequence (
+		Slet("f", Fexp ( Fdefine ("x", (Sprint (Aexp (Aplus(Avar "x",Anum 1)))),Aexp (Anum 0)))),
+	Ssequence(
+		Slet("iter", Fexp ( Fdefine ("arg", (
+				Ssequence (
+					Slet ("l", Lexp (Lpair2list (Pproj2 (Pvar "arg")))),
+				Ssequence (
+					Svar ("y", Aexp (Anum 0)),
+					Swhile (Bnot (BisListEmpty (Lvar "l")), 
+						Ssequence (
+							Scall ("y", Fpair2fun (Pproj1(Pvar "arg")), Aexp (AlistHead (Lvar "l"))),
+							Slet ("l", Lexp (Ltail (Lvar "l")))
+						)
+					)
+					))),
+			Aexp (Anum 0)
+			))
+		),
+		Ssequence(
+			Svar("z", Aexp (Anum 0)),
+			Scall ("z",Fvar "iter", Pexp (Pnumnum(Fexp (Fvar "f"), Lexp (Lvar "l"))))
+	))))
+;;
+Printf.printf "%s\n" "---- Code ----";;
+Printf.printf "%s\n" (stm_to_str test4 0);;
+Printf.printf "%s\n" "---- Result ----";;
+let (env1, sto1) = sem test4 env sto;;
 

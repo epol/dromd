@@ -122,7 +122,7 @@ let rec denotabile_to_expressible (d:denotabile) = match d with
 (*	| DPointer p -> EInt p *)
 	| DPair (p1, p2) -> EPair ( denotabile_to_expressible p1 , denotabile_to_expressible p2 )
 	| DFunc (s,e,t,env) -> EFun (s,e,t,env)
-	| DList l -> raise (Failure "bug in implementation")
+	| DList l -> EList l
 	| L l -> raise (Failure "bug in implementation")
 	| DArray (n,l) -> raise (Failure "bug in implementation or not implemented yet")
 ;;
@@ -347,12 +347,12 @@ let rec call_function (f:stm*exp*vname*environment) (d:denotabile) (sto:storage)
 	let new_f_env = bind f_env vp d in
 	let (env1, sto1) =  sem s new_f_env sto in
 		(exp_sem re env1 sto1,sto1)
-and iterArray (element:loc) (left:int) (fun_stm:stm) (fun_param:vname) (fun_env:environment) (sto:storage) = 
+and iter_array (element:loc) (left:int) (fun_stm:stm) (fun_param:vname) (fun_env:environment) (sto:storage) = 
 	if left = 0 then sto
 	else
 		let fun_env1  = bind fun_env fun_param (expressible_to_denotabile (storable_to_expressible ((snd sto) element))) in
 			let (env_garage,sto1) = sem fun_stm fun_env1 sto in
-				iterArray (element +1) (left -1) fun_stm fun_param fun_env sto1
+				iter_array (element +1) (left -1) fun_stm fun_param fun_env sto1
 and iter_list (l:int_list) (f:stm*exp*vname*environment) (sto:storage) = 
 	match l with
 		| Empty -> sto
@@ -446,10 +446,10 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 					(
 						match fun_sem funExp env sto with
 							| EFun (funcStm,returnExp,paramName,f_env) -> 
-								(env, iterArray firstElement length funcStm paramName f_env sto)
+								(env, iter_array firstElement length funcStm paramName f_env sto)
 							| _ -> raise (Failure "Not a valid function")
 					)
-				| _ -> raise (Failure "iterArray must be applied to an array!")
+				| _ -> raise (Failure "iter_array must be applied to an array!")
 		)
 	| SmapArray (arrayName, funExp ) ->
 		(
