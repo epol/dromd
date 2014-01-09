@@ -38,7 +38,7 @@ type a_exp =
 	(* array *)
 	| AvarArray of vname * a_exp
 	(* pointers *)
-	| Apnt2val of a_exp (* TODO: Non c'è un modo migliore di farlo? *)
+	| Apnt2val of a_exp
 	| Avar2pnt of vname
 	| Aarr2pnt of vname
 	(* lists *)
@@ -51,6 +51,7 @@ and b_exp =
 	| Bleq of a_exp * a_exp
 	| Bnot of b_exp
 	| Band of b_exp * b_exp
+	| Bor of b_exp * b_exp
 	| BisListEmpty of list_exp
 and list_exp =
 	| Lempty
@@ -110,6 +111,7 @@ let rec b_exp_to_str be = match be with
 	| Bleq (a1,a2) -> a_exp_to_str a1 ^ " <= " ^ a_exp_to_str a2
 	| Bnot b -> "!("^b_exp_to_str b ^")"
 	| Band (b1, b2) -> b_exp_to_str b1 ^ " && " ^ b_exp_to_str b2
+	| Bor (b1, b2) -> b_exp_to_str b1 ^ " || " ^ b_exp_to_str b2
 	| BisListEmpty le -> "is_empty("^list_exp_to_str le ^")"
 and a_exp_to_str ae = match ae with
 	| Avar (v) -> v
@@ -160,10 +162,10 @@ and stm_to_str s ind=	match s with
 	| Sassign (v, e) -> tab ind ^ v ^ " := " ^ exp_to_str e ind^ ";"
 	| Slet (v, e) -> tab ind ^ "let " ^ v ^ " := " ^ exp_to_str e ind^ ";"
 	| Svar (v, e) -> tab ind ^ "var " ^ v ^ " := " ^ exp_to_str e ind^ ";"
-	| Sifthenelse (be, s1, s2) -> tab ind ^ "if " ^ b_exp_to_str be ^ "{\n" ^ stm_to_str s1 ind ^"\n" ^ tab ind ^"} else {\n"^ stm_to_str s2 ind ^ tab ind ^ "\n"
+	| Sifthenelse (be, s1, s2) -> tab ind ^ "if (" ^ b_exp_to_str be ^ ") {\n" ^ stm_to_str s1 (ind+1) ^"\n" ^ tab ind ^"} else {\n"^ stm_to_str s2 (ind+1) ^ "\n" ^ tab ind ^ "}"
 	| Swhile (be, s) -> tab ind ^ "while (" ^ b_exp_to_str be ^ ") {\n" ^ stm_to_str s (ind+1) ^ "\n"^ tab ind ^"}"
 	| Sblock s -> tab ind ^ "{\n" ^ stm_to_str s (ind+1) ^ "\n" ^ tab ind ^"}"
-	| Scall (v,fe,e) -> v ^ " := " ^ fun_exp_to_str fe ind ^ "(" ^ exp_to_str e ind^ ");"
+	| Scall (v,fe,e) -> tab ind ^ v ^ " := " ^ fun_exp_to_str fe ind ^ "(" ^ exp_to_str e ind^ ");"
 	| Sprint e -> tab ind ^ "print " ^ exp_to_str e ind ^ ";"
 	| SvarArray (v,ae_len,ae_init) -> tab ind ^ "var " ^ v ^ "[] of len " ^ a_exp_to_str ae_len ^ " := " ^ a_exp_to_str ae_init ^ ";"
 	| SassignArray (v,ae_index,ae_value) ->  tab ind ^ v ^ "[" ^ a_exp_to_str ae_index ^ "] := " ^ a_exp_to_str ae_value ^ ";"

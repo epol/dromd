@@ -179,3 +179,41 @@ Printf.printf "%s\n" (stm_to_str test4 0);;
 Printf.printf "%s\n" "---- Result ----";;
 let (env1, sto1) = sem test4 env sto;;
 
+let test5 = 
+	Ssequence (
+		Svar ("f", Fexp (Fdefine ("n", Sskip, Aexp (Anum 0)))),
+	Ssequence (
+		Sassign("f", Fexp (
+			Fdefine ("n",
+				Ssequence (
+					Svar ("r",Aexp (Anum 0)),
+				Ssequence (
+					Svar ("r1",Aexp (Anum 0)),
+				Ssequence (
+					Svar ("r2",Aexp (Anum 0)),
+					Sifthenelse (
+						Bor (Bequal (Avar "n", Anum 0), Bequal (Avar "n", Anum 1)),
+						Sassign ("r", Aexp (Anum 1)),
+						Ssequence (
+							Scall("r1",Fvar "f",Aexp (Aminus (Avar "n", Anum 1))),
+						Ssequence (
+							Scall("r2",Fvar "f",Aexp (Aminus (Avar "n", Anum 2))),
+							Sassign ("r", Aexp (Aplus (Avar "r1", Avar "r2")))
+						))
+					))))
+				,
+				Aexp (Avar "r")))
+		),
+		Ssequence(
+			Svar("z", Aexp (Anum (-10))),
+		Ssequence(
+			Scall ("z",Fvar "f", Aexp (Anum 6)),
+			Sprint (Aexp (Avar "z"))
+	))))
+;;
+Printf.printf "%s\n" "---- Code ----";;
+Printf.printf "%s\n" (stm_to_str test5 0);;
+Printf.printf "%s\n" "---- Result ----";;
+let (env1, sto1) = sem test5 env sto;;
+
+

@@ -30,13 +30,11 @@ type int_list = Empty | Conc of int * int_list;;
 
 type storable =
 	| SInt of int
-(*| SPointer of loc*)
 	| SPair of storable * storable
 	| SFunc of (stm * exp * vname * environment)
-and denotabile = 
+and denotable = 
 	| DInt of int
-(*	| DPointer of loc *)
-	| DPair of denotabile * denotabile
+	| DPair of denotable * denotable
 	| DFunc of (stm * exp * vname * environment)
 	| L of loc
 	| DList of int_list
@@ -47,7 +45,7 @@ and expressible =
 	| EPair of expressible * expressible
 	| EFun of (stm * exp * vname * environment)
 	| EList of int_list
-and environment = vname -> denotabile
+and environment = vname -> denotable
 ;;
 
 type storage = int * (loc -> storable)
@@ -61,13 +59,6 @@ let update_storage (sto:storage) (l:loc) (d:storable) =
 	(fst sto, updated_memory)
 ;;
 
-
-(*
-let extend_storage (sto:storage) (s:storable) = 
-	let updated_memory l1 = if (l1=(fst sto)) then s else apply_storage sto l1 in
-	(fst sto +1, updated_memory)
-;;*)
-
 let extend_storage (sto:storage) (s:storable) (n:int) = 
 	let updated_memory l1 =
 		if (l1>= (fst sto) &&l1 < ((fst sto) + n))
@@ -76,20 +67,18 @@ let extend_storage (sto:storage) (s:storable) (n:int) =
 	in ((fst sto + n), updated_memory)
 ;;
 
-let bind (env:environment) (v:vname) (d:denotabile) = 
+let bind (env:environment) (v:vname) (d:denotable) = 
 	let new_env v1 = if (v1=v) then d else env v1 in
 	new_env
 ;;
 
 let storable_to_int (s:storable) = match s with
 	| SInt i -> i
-(*	| SPointer p -> p *)
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
-let denotabile_to_int (d:denotabile) = match d with
+let denotable_to_int (d:denotable) = match d with
 	| DInt i -> i 
-(*	| DPointer p -> p *)
 	| _ -> raise (Failure "Wrong data type in conversion")
 ;;
 
@@ -117,19 +106,17 @@ let rec access_list_n (l1:int_list) (n:int) = match l1 with
 	| Conc ( e , l2 ) -> if n=0 then e else (access_list_n l2 (n - 1) )
 ;;
 
-let rec denotabile_to_expressible (d:denotabile) = match d with
+let rec denotable_to_expressible (d:denotable) = match d with
 	| DInt n -> EInt n
-(*	| DPointer p -> EInt p *)
-	| DPair (p1, p2) -> EPair ( denotabile_to_expressible p1 , denotabile_to_expressible p2 )
+	| DPair (p1, p2) -> EPair ( denotable_to_expressible p1 , denotable_to_expressible p2 )
 	| DFunc (s,e,t,env) -> EFun (s,e,t,env)
 	| DList l -> EList l
-	| L l -> raise (Failure "bug in implementation")
-	| DArray (n,l) -> raise (Failure "bug in implementation or not implemented yet")
+	| L l -> raise (Failure "Bug in implementation") (* should never happen *)
+	| DArray (n,l) -> raise (Failure "Bug in implementation")
 ;;
 
 let rec storable_to_expressible (s:storable) = match s with
 	| SInt n -> EInt n
-(*	| SPointer p -> EInt p *)
 	| SPair (p1, p2) -> EPair ( storable_to_expressible p1 , storable_to_expressible p2)
 	| SFunc (s,e,t,env) -> EFun (s,e,t,env)
 ;;
@@ -143,19 +130,19 @@ let rec expressible_to_storable (e:expressible) = match e with
 	| EList l -> raise (Failure "List is not storable")
 ;;
 
-let rec expressible_to_denotabile (e:expressible) = match e with
+let rec expressible_to_denotable (e:expressible) = match e with
 	| EInt n -> DInt n
-	| EPair (p1, p2) -> DPair ( expressible_to_denotabile p1 , expressible_to_denotabile p2 )
+	| EPair (p1, p2) -> DPair ( expressible_to_denotable p1 , expressible_to_denotable p2 )
 	| EFun (s,e,t,env) -> DFunc (s,e,t,env)
 	| EList l -> DList l
-	| EBool b -> raise (Failure "bool is not denotabile")	
+	| EBool b -> raise (Failure "Bool is not denotable")	
 ;;
 
 
 let get_var_value (v:vname) (env:environment) (sto:storage) =
 	match (env v) with
 		| L l -> storable_to_expressible (apply_storage sto l)
-		| d -> denotabile_to_expressible(d)
+		| d -> denotable_to_expressible(d)
 ;;
 
 (* funzioni semantica *)
@@ -174,21 +161,20 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 				| _ -> raise (Failure "I can't do arithmetic with pairs!")
 		)
 
-	| AvarArray (arrayName , indexExp) -> 
+	| AvarArray (array_name , index_exp) -> 
 		(
-			match a_sem indexExp env sto with
+			match a_sem index_exp env sto with
 				|	EInt index ->
-					( match env arrayName with
-							|	DArray ( arrayLength , arrayLocation ) ->
-								if index < arrayLength then
+					( match env array_name with
+							|	DArray ( array_length , array_location ) ->
+								if index < array_length then
 									(
-										match (snd sto) ( arrayLocation + index) with
+										match (snd sto) ( array_location + index) with
 											| SInt i -> EInt i
-										(*	| SPointer p -> EInt p *)
-											| _ -> raise (Failure "Error in seeking array (or not implemented yet)")
+											| _ -> raise (Failure "Error in seeking array")
 									)
 								else 
-									raise (Failure "Segmentation Fault!")
+									raise (Failure "Segmentation fault")
 							| _ -> raise (Failure "Is that an array?")
 					)
 				|	_ -> raise (Failure "Invalid array index expression")
@@ -200,8 +186,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 					(
 						match (snd sto) p with
 							| SInt n -> EInt n
-							(*| SPointer p -> EInt p *)
-							| _ -> raise (Failure "Not int variable pointed in a arithmetic expression")
+							| _ -> raise (Failure "Not int variable referenced in an arithmetic expression")
 					)
 				| _ -> raise (Failure "Not a valid pointer")
 		)
@@ -209,13 +194,13 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 		(
 			match env v with
 				| L l -> EInt l
-				| _ -> raise (Failure "Unable to point to a const value")
+				| _ -> raise (Failure "Unable to reference a const value")
 		)
 	| Aarr2pnt v ->
 		(
 			match env v with
-				| DArray ( arrayLength, arrayLocation ) -> EInt arrayLocation
-				| _ -> raise (Failure "This is not an array")
+				| DArray ( array_length, array_location ) -> EInt array_location
+				| _ -> raise (Failure "This is not an array!")
 		)
 	| AvarList ( l, a) -> 
 		(
@@ -230,13 +215,12 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 				| EList Conc (n,l2) -> EInt n
 				| _ -> raise (Failure "Not a list")
 		)
-(*	| _ -> raise (Failure "Invalid a-exp") *)
 
 and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
 	| Pvar v ->
 		(
 			match env v with
-				| DPair (d1, d2) -> denotabile_to_expressible (DPair (d1,d2)) 
+				| DPair (d1, d2) -> denotable_to_expressible (DPair (d1,d2)) 
 				| L l -> storable_to_expressible ((snd sto) l)
 				| _ -> raise (Failure "Pvar must be applied to a pair")
 		)
@@ -264,6 +248,7 @@ and b_sem (s:b_exp) (env:environment) (sto:storage) = match s with
 	| Bleq (a1,a2) -> EBool (expressible_to_int (a_sem a1 env sto) <= expressible_to_int (a_sem a2 env sto))
 	| Bnot b1 -> EBool ( not ( expressible_to_bool (b_sem b1 env sto)))
 	| Band (b1, b2) -> EBool ( (expressible_to_bool (b_sem b1 env sto)) && (expressible_to_bool (b_sem b2 env sto)))
+	| Bor (b1, b2) -> EBool ( (expressible_to_bool (b_sem b1 env sto)) || (expressible_to_bool (b_sem b2 env sto)))
 	| BisListEmpty l -> EBool ((list_sem l env sto) = EList Empty)
 
 and list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
@@ -287,7 +272,7 @@ and list_sem (l:list_exp) (env:environment) (sto:storage) = match l with
 	| Lpair2list pe ->
 			(match pair_sem pe env sto with
 					| EList l -> EList l
-					| _ -> raise (Failure "Invalid conversion from pair to function")
+					| _ -> raise (Failure "Invalid conversion from pair to list")
 			)
 and fun_sem (f:fun_exp) (env:environment) (sto:storage) =
 	match f with
@@ -341,26 +326,28 @@ let rec print_expressible (e:expressible) =
 				Printf.printf "%d:" n;
 				print_expressible (EList l)
 
-(* TODO Fare in modo che tutti i call usino questa funzione *)
-let rec call_function (f:stm*exp*vname*environment) (d:denotabile) (sto:storage) =
+let rec call_function (f:stm*exp*vname*environment) (d:denotable) (sto:storage) =
 	let (s,re, vp, f_env) = f in	
 	let new_f_env = bind f_env vp d in
 	let (env1, sto1) =  sem s new_f_env sto in
 		(exp_sem re env1 sto1,sto1)
+
 and iter_array (element:loc) (left:int) (fun_stm:stm) (fun_param:vname) (fun_env:environment) (sto:storage) = 
 	if left = 0 then sto
 	else
-		let fun_env1  = bind fun_env fun_param (expressible_to_denotabile (storable_to_expressible ((snd sto) element))) in
+		let fun_env1  = bind fun_env fun_param (expressible_to_denotable (storable_to_expressible ((snd sto) element))) in
 			let (env_garage,sto1) = sem fun_stm fun_env1 sto in
 				iter_array (element +1) (left -1) fun_stm fun_param fun_env sto1
+
 and iter_list (l:int_list) (f:stm*exp*vname*environment) (sto:storage) = 
 	match l with
 		| Empty -> sto
 		| Conc (n,l1) ->
 				let sto1 = snd (call_function f (DInt n) sto) in
 				iter_list l1 f sto1
+
 and sem (s:stm) (env:environment) (sto:storage) = match s with
-	| Slet (v,e) -> (bind env v (expressible_to_denotabile (exp_sem e env sto)),sto)
+	| Slet (v,e) -> (bind env v (expressible_to_denotable (exp_sem e env sto)),sto)
 	| Sskip -> (env, sto)
 	| Sassign (v,e) ->
 		env,
@@ -394,39 +381,39 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 	| Sblock s1 ->
 		let (env1,sto1) = sem s1 env sto in
 			(env,sto1)
-	| Scall ( returnVar, funNameExp , e) ->
+	| Scall ( return_var, fun_exp , e) ->
 		(
-			let (s1,returnExp,vp,f_env)=expressible_to_function (fun_sem funNameExp env sto) in
-				let new_f_env = bind f_env vp (expressible_to_denotabile (exp_sem e env sto)) in
+			let (s1,return_exp,vp,f_env)=expressible_to_function (fun_sem fun_exp env sto) in
+				let new_f_env = bind f_env vp (expressible_to_denotable (exp_sem e env sto)) in
 					let (env1, sto1) =  sem s1 new_f_env sto in
-						match env returnVar with
-							| L l -> ( env , update_storage sto1 l (expressible_to_storable(exp_sem returnExp env1 sto1)))
+						match env return_var with
+							| L l -> ( env , update_storage sto1 l (expressible_to_storable(exp_sem return_exp env1 sto1)))
 							| _ -> raise (Failure "A function result must be stored in a variable!")
 		)
-	| SvarArray (arrayName, lengthExp , initValueExp) ->
+	| SvarArray (array_name, length_exp , init_value_exp) ->
 		(
-			match ( a_sem lengthExp env sto , a_sem initValueExp env sto ) with 
+			match ( a_sem length_exp env sto , a_sem init_value_exp env sto ) with 
 				| (EInt length , EInt initValue ) ->
 					(
-						bind env arrayName (DArray (length, (fst sto))),
+						bind env array_name (DArray (length, (fst sto))),
 						extend_storage sto (SInt initValue) length
 					)
 				| _ -> raise (Failure "Invalid initialization of an array")
 		)
-	|	SassignArray (arrayName, indexExp, valueExp) ->
+	|	SassignArray (array_name, index_exp, value_exp) ->
 		(
-			match env arrayName with
-				| DArray (length, firstLocation) ->
+			match env array_name with
+				| DArray (length, first_location) ->
 					(
-						match a_sem indexExp env sto , a_sem valueExp env sto with
+						match a_sem index_exp env sto , a_sem value_exp env sto with
 							| EInt index , EInt value -> 
 								if index < length then
 									(
 										env,
-										update_storage sto (firstLocation + index) (SInt value)
+										update_storage sto (first_location + index) (SInt value)
 									)
 								else
-									raise (Failure "Segmentation Fault")
+									raise (Failure "Segmentation fault")
 							| _ -> raise (Failure "Invalid array assign")
 					)
 				| _ -> raise (Failure "Not an array")
@@ -439,36 +426,36 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 					update_storage sto address (expressible_to_storable(exp_sem e env sto))
 				| _ -> raise (Failure "Invalid pointer value")
 		)
-	| SiterArray (arrayName, funExp) ->
+	| SiterArray (array_name, fun_exp) ->
 		(
-			match env arrayName with
-				| DArray (length, firstElement) ->
+			match env array_name with
+				| DArray (length, first_element) ->
 					(
-						match fun_sem funExp env sto with
-							| EFun (funcStm,returnExp,paramName,f_env) -> 
-								(env, iter_array firstElement length funcStm paramName f_env sto)
+						match fun_sem fun_exp env sto with
+							| EFun (fun_stm,return_exp,param_name,f_env) -> 
+								(env, iter_array first_element length fun_stm param_name f_env sto)
 							| _ -> raise (Failure "Not a valid function")
 					)
 				| _ -> raise (Failure "iter_array must be applied to an array!")
 		)
-	| SmapArray (arrayName, funExp ) ->
+	| SmapArray (array_name, fun_exp ) ->
 		(
-			match (env arrayName) with
-				| DArray (arrayLength, arrayFirstElement ) ->
-					let mapStm = (Ssequence (
-																Ssequence (Svar  ("i", Aexp (Anum 0)) , Svar ("temp" , Aexp (Anum 0)) ),
-																Swhile ( Band (Bleq ( Avar "i" , Anum arrayLength ) , Bnot ( Bequal ( Avar "i" , Anum arrayLength))) ,
-																				Ssequence (
-																						Ssequence (
-																										Scall ("temp", funExp , Aexp (AvarArray (arrayName, Avar "i"))),
-																										SassignArray ("array", Avar "i", Avar "temp")
-																										),
-																						Sassign ("i", Aexp (Aplus (Avar "i" , Anum 1)))
-																						)
-																			)
-																)
-												)
-						in sem mapStm env sto
+			match (env array_name) with
+				| DArray (array_length, arrayfirst_element ) ->
+					let map_stm = (Ssequence (
+						Ssequence (Svar  ("i", Aexp (Anum 0)) , Svar ("temp" , Aexp (Anum 0)) ),
+						Swhile ( Band (Bleq ( Avar "i" , Anum array_length ) , Bnot ( Bequal ( Avar "i" , Anum array_length))) ,
+							Ssequence (
+								Ssequence (
+									Scall ("temp", fun_exp , Aexp (AvarArray (array_name, Avar "i"))),
+									SassignArray ("array", Avar "i", Avar "temp")
+									),
+								Sassign ("i", Aexp (Aplus (Avar "i" , Anum 1)))
+								)
+						)
+						)
+		)
+						in sem map_stm env sto
 				| _ -> raise (Failure "Not a valid array in SmapArray call") 
 		)
 	| SiterList (le, fe) ->
@@ -480,6 +467,5 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 					)
 				| _ -> raise (Failure "iterList must be applied to a list!")
 		)
-(*	| _ -> raise (Failure "Semantic not implemented yet") *)
 ;;
 
