@@ -61,9 +61,9 @@ and list_exp =
 	| Lpair2list of pair_exp
 and pair_exp =
 	| Pvar of vname
-	| Pnumnum of exp * exp
-	| Ppairnum of pair_exp * exp
-	| Pnumpair of  exp * pair_exp
+	| Pexpexp of exp * exp
+	| Ppairexp of pair_exp * exp
+	| Pexppair of  exp * pair_exp
 	| Ppairpair of pair_exp * pair_exp
 	| Pproj1 of pair_exp
 	| Pproj2 of pair_exp
@@ -136,9 +136,9 @@ and list_exp_to_str le = match le with
 	| Lpair2list pe -> "pair_to_list(" ^ pair_exp_to_str pe ^")"
 and pair_exp_to_str pe = match pe with 
 	| Pvar v -> v
-	| Pnumnum (a1,a2) ->  "("^(exp_to_str a1 0) ^ "," ^ (exp_to_str a2 0) ^ ")"
-	| Ppairnum (p,a) ->  "("^pair_exp_to_str p ^ "," ^ exp_to_str a 0 ^ ")"
-	| Pnumpair (a,p) ->  "("^exp_to_str a 0 ^ "," ^ pair_exp_to_str p ^ ")"
+	| Pexpexp (a1,a2) ->  "("^(exp_to_str a1 0) ^ "," ^ (exp_to_str a2 0) ^ ")"
+	| Ppairexp (p,a) ->  "("^pair_exp_to_str p ^ "," ^ exp_to_str a 0 ^ ")"
+	| Pexppair (a,p) ->  "("^exp_to_str a 0 ^ "," ^ pair_exp_to_str p ^ ")"
 	| Ppairpair (p1,p2) ->  "("^pair_exp_to_str p1 ^ "," ^ pair_exp_to_str p2 ^ ")"
 	| Pproj1 p -> "fst(" ^ pair_exp_to_str p ^")"
 	| Pproj2 p -> "snd(" ^ pair_exp_to_str p ^")"

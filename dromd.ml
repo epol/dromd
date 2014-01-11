@@ -20,8 +20,6 @@
  * Fifth Floor, Boston, MA 02110-1301 USA.
  *)
 
-(*open Syntax;;
-open Semantic;;*)
 
 #use "semantic.ml"
 
@@ -138,7 +136,7 @@ let test3 =
 		Ssequence(
 			Svar("z", Lexp Lempty),
 		Ssequence(
-			Scall ("z",Fvar "map", Pexp (Pnumnum(Fexp (Fvar "f"), Lexp (Lvar "l")))),
+			Scall ("z",Fvar "map", Pexp (Pexpexp(Fexp (Fvar "f"), Lexp (Lvar "l")))),
 			Sprint (Lexp (Lvar "l"))
 	)))))
 ;;
@@ -171,7 +169,7 @@ let test4 =
 		),
 		Ssequence(
 			Svar("z", Aexp (Anum 0)),
-			Scall ("z",Fvar "iter", Pexp (Pnumnum(Fexp (Fvar "f"), Lexp (Lvar "l"))))
+			Scall ("z",Fvar "iter", Pexp (Pexpexp(Fexp (Fvar "f"), Lexp (Lvar "l"))))
 	))))
 ;;
 Printf.printf "%s\n" "---- Code ----";;

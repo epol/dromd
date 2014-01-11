@@ -20,9 +20,9 @@
  * Fifth Floor, Boston, MA 02110-1301 USA.
  *)
 
-(* semantica *)
-
 #use "syntax.ml"
+
+(* semantica *)
 
 type loc = int;; (* indirizzi di memoria *)
 
@@ -48,29 +48,7 @@ and expressible =
 and environment = vname -> denotable
 ;;
 
-type storage = int * (loc -> storable)
-;;
-
-let apply_storage (sto:storage) (l:loc) = (snd sto) l
-;;
-
-let update_storage (sto:storage) (l:loc) (d:storable) = 
-	let updated_memory l1 = if (l1=l) then d else apply_storage sto l1 in
-	(fst sto, updated_memory)
-;;
-
-let extend_storage (sto:storage) (s:storable) (n:int) = 
-	let updated_memory l1 =
-		if (l1>= (fst sto) &&l1 < ((fst sto) + n))
-			then s
-			else apply_storage sto l1
-	in ((fst sto + n), updated_memory)
-;;
-
-let bind (env:environment) (v:vname) (d:denotable) = 
-	let new_env v1 = if (v1=v) then d else env v1 in
-	new_env
-;;
+(* type conversions *)
 
 let storable_to_int (s:storable) = match s with
 	| SInt i -> i
@@ -138,6 +116,31 @@ let rec expressible_to_denotable (e:expressible) = match e with
 	| EBool b -> raise (Failure "Bool is not denotable")	
 ;;
 
+(* memory management *)
+
+type storage = int * (loc -> storable)
+;;
+
+let apply_storage (sto:storage) (l:loc) = (snd sto) l
+;;
+
+let update_storage (sto:storage) (l:loc) (d:storable) = 
+	let updated_memory l1 = if (l1=l) then d else apply_storage sto l1 in
+	(fst sto, updated_memory)
+;;
+
+let extend_storage (sto:storage) (s:storable) (n:int) = 
+	let updated_memory l1 =
+		if (l1>= (fst sto) && l1 < ((fst sto) + n))
+			then s
+			else apply_storage sto l1
+	in ((fst sto + n), updated_memory)
+;;
+
+let bind (env:environment) (v:vname) (d:denotable) = 
+	let new_env v1 = if (v1=v) then d else env v1 in
+	new_env
+;;
 
 let get_var_value (v:vname) (env:environment) (sto:storage) =
 	match (env v) with
@@ -158,9 +161,8 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 	| Apair2num p1 -> 
 		(match pair_sem p1 env sto with
 				| EInt n -> EInt n
-				| _ -> raise (Failure "I can't do arithmetic with pairs!")
+				| _ -> raise (Failure "Invalid conversion from pair to num.")
 		)
-
 	| AvarArray (array_name , index_exp) -> 
 		(
 			match a_sem index_exp env sto with
@@ -174,8 +176,8 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 											| _ -> raise (Failure "Error in seeking array")
 									)
 								else 
-									raise (Failure "Segmentation fault")
-							| _ -> raise (Failure "Is that an array?")
+									raise (Failure "Index out of range")
+							| _ -> raise (Failure "Not an array.")
 					)
 				|	_ -> raise (Failure "Invalid array index expression")
 		)
@@ -184,9 +186,9 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 			match  a_sem a env sto with
 				| EInt p ->
 					(
-						match (snd sto) p with
+						match apply_storage sto p with
 							| SInt n -> EInt n
-							| _ -> raise (Failure "Not int variable referenced in an arithmetic expression")
+							| _ -> raise (Failure "Non int variable referenced in an arithmetic expression")
 					)
 				| _ -> raise (Failure "Not a valid pointer")
 		)
@@ -202,7 +204,7 @@ let rec a_sem (s:a_exp) (env:environment) (sto:storage) = match s with
 				| DArray ( array_length, array_location ) -> EInt array_location
 				| _ -> raise (Failure "This is not an array!")
 		)
-	| AvarList ( l, a) -> 
+	| AvarList (l,a) -> 
 		(
 			match (list_sem l env sto , a_sem a env sto ) with
 				| EList l , EInt n -> EInt ( access_list_n l n )
@@ -224,9 +226,9 @@ and pair_sem (p:pair_exp) (env:environment) (sto:storage) = match p with
 				| L l -> storable_to_expressible ((snd sto) l)
 				| _ -> raise (Failure "Pvar must be applied to a pair")
 		)
-	| Pnumnum (a1, a2) -> EPair ( exp_sem a1 env sto, exp_sem a2 env sto)
-	| Ppairnum (p1 , a1) -> EPair ( pair_sem p1 env sto, exp_sem a1 env sto)
-	| Pnumpair (a1 , p1) -> EPair ( exp_sem a1 env sto, pair_sem p1 env sto)
+	| Pexpexp (a1, a2) -> EPair ( exp_sem a1 env sto, exp_sem a2 env sto)
+	| Ppairexp (p1 , a1) -> EPair ( pair_sem p1 env sto, exp_sem a1 env sto)
+	| Pexppair (a1 , p1) -> EPair ( exp_sem a1 env sto, pair_sem p1 env sto)
 	| Ppairpair (p1 , p2) -> EPair ( pair_sem p1 env sto, pair_sem p2 env sto)
 	| Pproj1 p1 -> 
 		(
@@ -413,7 +415,7 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 										update_storage sto (first_location + index) (SInt value)
 									)
 								else
-									raise (Failure "Segmentation fault")
+									raise (Failure "Index out of range")
 							| _ -> raise (Failure "Invalid array assign")
 					)
 				| _ -> raise (Failure "Not an array")
@@ -468,4 +470,3 @@ and sem (s:stm) (env:environment) (sto:storage) = match s with
 				| _ -> raise (Failure "iterList must be applied to a list!")
 		)
 ;;
-
